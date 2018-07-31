@@ -169,4 +169,5 @@ switch(integral-selector){
 
 其中，Integral-selector(整数选择因子)是一个能够产生整数值的表达式，switch能将这个表达式的结果与每个integral-value（整数值）相比较。若发现相符的，就执行对应的语句（单一语句或多条语句，其中并不需要括号）。若没有发现相符的，就指定default（默认）语句。
 
-这个选择因子，必须是int或char那样的整数值，还可以使用enum（枚举），因为enum可以和switch协调工作。
+这个选择因子，必须是int或char那样的整数值，还可以使用enum（枚举），因为enum可以和switch协调工作。  
+[练习题](https://github.com/wangwren/Java/tree/master/Chapter4Exercise/src/exercise)
