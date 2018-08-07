@@ -285,3 +285,262 @@ Java虚拟机中有许多附加技术用以提升速度。尤其是与加载器�
 
 ## 成员初始化
 
+Java尽力保证：所有变量在使用前都能得到恰当的初始化。**对于方法的局部变量，Java以编译时错误的形式来贯彻这种保证。**
+
+```java
+void f(){
+    int i;
+    i++; //Error   i not initalized
+}
+```
+
+会得到一条出错消息，告诉你 i 可能尚未初始化。
+
+如果是**类**的数据成员（即字段）是基本类型，类的每个基本数据成员保证都会有一个初始值。
+
+在**类**里定义一个对象引用时，如果不将其初始化，此引用就会获得一个特殊值 null。
+
+## 构造器初始化
+
+可以用构造器来进行初始化。在运行时刻，可以调用方法或执行某些动作来确定初值，这为编程带来了更大的灵活性。但要牢记：**无法阻止自动初始化的进行，它将在构造器被调用之前发生。**
+
+```java
+public class Counter{
+    int i;
+    Counter(){
+        i = 7;
+    }
+}
+```
+
+对于上面的代码，i首先会被置为0，然后变成7.对于所有基本类型和对象的引用，包括在定义时已经指定初值的变量，这种情况都是成立的；因此，编译器不会强制你一定要在构造器的某个地方或在使用它们之前对元素进行初始化--因为初始化早已得到了保证。
+
+### 初始化顺序
+
+在类的内部，变量定义的先后顺序决定了初始化的顺序。即使变量定义散步于方法定义之间，它们仍旧会在任何方法（包括构造器）被调用之前得到初始化。
+
+```java
+class Window{
+    Window(int marker){
+        System.out.println("Window(" + marker + ")");
+    }
+}
+class House{
+    Window w1 = new Window(1);
+    House(){
+        System.out.println("House()");
+        w3 = new Window(33);
+    }
+    Window w2 = new Window(2);
+    void f(){
+        System.out.println("f()");
+    }
+    Window w3 = new Window(3);
+}
+public class OrderOfInitialization{
+    public static void main(String[] args){
+        House h = new House();
+        h.f();
+    }
+}
+/**
+Output:
+Window(1)
+Window(2)
+Window(3)
+House()
+Window(33)
+f()
+*/
+```
+
+在House类中，故意把几个Window对象的定义散布到各处，**以证明它们全部都会在调用构造器或其他方法之前得到初始化。**此外，w3在构造器内再次被初始化。w3这个引用会被初始化两次：一次在调用构造器前，一次在调用期间（第一次引用的对象将被丢弃，并作为垃圾回收）。
+
+### 静态数据的初始化
+
+无论创建多少个对象，静态数据都只占用一份存储区域。static 关键字不能应用于局部变量，因此它只能作用于域。如果一个域是静态的基本类型域，且也没有对它进行初始化，那么它就会获得基本类型的标准初值；如果它是一个对象引用，那么它的默认初始化值就是 null。
+
+初始化的顺序是先静态对象（如果他们尚未因前面的对象创建过程而被初始化），而后是“非静态”对象。
+
+- 总结一下对象的创建过程，假设有个名为Dog的类
+  - 即使没有显示地使用static关键字，构造器实际上也是静态方法。因此，当首次创建类型为Dog的对象时（构造器可以看成静态方法），或者Dog类的静态方法/静态域首次被访问时，Java解释器必须查找类路径，以定位Dog.class文件
+  - 然后载入Dog.class，有关静态初始化的所有动作都会执行。因此，**静态初始化只在Class对象首次加载的时候进行一次。**
+  - 当用`new Dog()`创建对象的时候，首先将在堆上为Dog对象分配足够的存储空间。
+  - 这块存储空间会被清零，这就自动地将Dog对象中的所有基本类型数据都设置成了默认值（对数字来说就是0，对布尔型和字符型也相同），而引用则被设置成了null。
+  - 执行所有出现于字段定义处的初始化动作。
+  - 执行构造器。
+
+### 显示静态初始化
+
+Java允许将多个静态初始化动作组织成一个特殊的“静态子句”（有时也叫做“静态块”）。
+
+```java
+public class Spoon{
+    static int i;
+    static{
+        i = 47;
+    }
+}
+```
+
+尽管上面的代码看起来像个方法，但它实际只是一段跟在static关键字后面的代码。与其他静态初始化动作一样。这段代码仅执行一次；**当首次生成这个类的一个对象时，或者首次访问属于那个类的静态数据成员时**（即便从未生成那个类的对象）。
+
+```java
+class Cup{
+    Cup(int marker){
+        System.out.println("Cup(" + marker + ")");
+    }
+    void f(int marker){
+        System.out.println("f(" + marker + ")");
+    }
+}
+class Cups{
+    static Cup cup1;
+    static Cup cup2;
+    static{
+        cup1 = new Cup(1);
+        cup2 = new Cup(2);
+    }
+    Cups(){
+        System.out.println("Cups()");
+    }
+}
+public class ExplicitStatic{
+    public static void main(String[] args){
+        System.out.println("Inside main()");
+        Cups.cup1.f(99); //注意，这里没有new Cups()，只是调用了该类中的一个静态数据成员，导致cup1被访问，cup1是在静态代码块中，导致cup2也被实例化
+    }
+}
+/**
+Inside main()
+Cup(1)
+Cup(2)
+f(99)
+*/
+```
+
+**静态初始化动作只进行一次！！！**
+
+### 非静态实例初始化
+
+Java中也有被称为实例初始化的类似语法，用来初始化每一个对象的非静态变量。
+
+```java
+class Mug{
+    Mug(int marker){
+        System.out.println("Mug(" + ")");
+    }
+    void f(int marker){
+        System.out.println("f(" + marker + ")");
+    }
+}
+public class Mugs{
+    Mug mug1;
+    Mug mug2;
+    {
+        mug1 = new Mug(1);
+        mug2 = new Mug(2);
+        System.out.print("mug1 & mug2 initialized");
+    }
+    Mugs(){
+        System.out.println("Mugs()");
+    }
+    Mugs(int i){
+        System.out.println("Mugs(int)");
+    }
+    public static void main(String[] args){
+        System.out.print("Inside main()");
+        new Mugs();
+        System.out.println("new Mugs() completed");
+        new Mugs(1);
+        System.out.println("new Mugs(1) completed");
+    }
+}
+/**
+Output:
+Inside main()
+Mug(1)
+Mug(2)
+mug1 & mug2 initialized
+Mugs()
+new Mugs completed
+Mug(1)
+Mug(2)
+mug1 & mug2 initialized
+Mugs(int)
+new Mugs(1) completed
+*/
+```
+
+看起来它与静态初始化子句一模一样只不过少了static关键字。这种语法对于支持“匿名内部类”的初始化是必须的，但是它也使得你可以保证无论调用了哪个显示构造器，某些操作都会发生。从输出中可以看到实例初始化子句是在两个构造器之前执行的。
+
+### 数组初始化
+
+数组只是相同类型的、用同一个标识符名称封装到一起的一个对象序列或基本类型数据序列。数组是通过方括号下标操作符 [ ] 来定义和使用的。要定义一个数组，只需在类型名后加上一对空方括号即可：
+
+```java
+int[] a1;
+```
+
+方括号也可以置于标识符后面：
+
+```java
+int a1[];
+```
+
+现在拥有的只是对数组的一个引用，而且也没给数组对象本身分配任何空间。为了给数组创建相应的存储空间，必须写初始化表达式。
+
+对于数组，初始化动作可以出现在代码的任何地方，但也可以使用一种特殊的初始化表达式，它必须在创建数组的地方出现。这种特殊的初始化是由一对花括号括起来的值组成的。这种情况下，存储空间的分配（等价于使用new）将由编译器负责，例如：
+
+```java
+int[] a1 = {1,2,3,4,5};
+```
+
+那么，为什么还要在没有数组的时候定义一个引用呢？
+
+```java
+int[] a2;
+```
+
+在Java中可以将一个数组赋值给另一个数组，所以可以这样：
+
+```java
+a2 = a1;
+```
+
+其实真正做的只是复制了一个引用。
+
+```java
+public class ArraysOfPrimitives{
+    public static void main(String[] args){
+        int[] a1 = {1,2,3,4,5};
+        int[] a2;
+        a2 = a1;
+        for(int i = 0;i < a2.length;i++){
+            a2[i] = a2[i] + 1;
+        }
+        for(int i = 0;i < a1.length;i++){
+            System.out.println("a1[" + i + "] = " + a1[i]);
+        }
+    }
+}
+/**
+Output:
+a1[0] = 2
+a1[1] = 3
+a1[2] = 4
+a1[3] = 5
+a1[4] = 6
+*/
+```
+
+由于 a2 和 a1 是相同数组的别名，因此通过 a2 所做的修改在 a1 中可以看到。
+
+所有数组（无论它们的元素时对象还是基本类型）都有一个固有成员，可以通过它获知数组内包含了多少个元素，但不能对其修改。这个成员就是 length。
+
+`Arrays.toString()`方法属于java.util标准类库，它将产生一维数组的可打印版本。
+
+如果创建了一个**非基本类型的数组**，那么就创建了一个**引用数组**。以整型的包装器类Integer为例，它是一个类而不是基本类型。
+
+### 可变参数列表
+
