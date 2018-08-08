@@ -650,5 +650,6 @@ FLAMING,ordinal 4
 尽管enum看起来像是一种新的数据类型，但是这个关键字只是为enum生成对应的类时，产生了某些编译器行为，因此在很大程度上，你可以将enum当做其他任何类来处理。事实上，enum确实是类，并且有自己的方法。
 
 enum有一个特别实用的特性，即它可以在switch语句内使用。  
+
+**在19章还会继续。这里提醒自己。（希望能坚持到19章）**  
 [练习题](https://github.com/wangwren/Java/tree/master/Chapter5Exercise/src/exercise)
-**在19章还会继续。这里提醒自己。（希望能坚持到19章）**
