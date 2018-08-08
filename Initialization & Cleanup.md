@@ -544,3 +544,111 @@ a1[4] = 6
 
 ### 可变参数列表
 
+```java
+public class NewVarArgs{
+    static void printArray(Object... args){
+        for(Object obj : args){
+            System.out.print(obj + " ");
+        }
+        System.out.println();
+    }
+    public static void main(String[] args){
+        printArray(47,3.14F,11.11);
+        printArray(new Integer(47),new Float(3.14F),new Double(11.11));
+        printArray("one","two","three");
+        printArray(new A(),new A(),new A());//A是一个类，这里没写
+        
+        printArray((Object)new Integer[]{1,2,3,4})；
+        printArray(); //Empty is ok
+    }
+}
+/**
+Output:
+47 3.14 11.11
+47 3.14 11.11
+one two three
+A@1bab50a A@c3c749 A@150bd4d
+1 2 3 4
+*/
+```
+
+有了可变参数，就再不也不用显示地编写数组语法了，当指定参数时，编译器实际上会为你去填充数组。你获取的仍旧是一个数组，这就是为什么可以使用foreach来迭代该数组的原因。但是，这不仅仅只是从元素列表到数组的自动转换，注意程序中倒数第二行，一个Integer数组（通过使用自动包装而创建的）被转型为一个Object数组（以便移除编译器警告信息），并且传递给了printArray()。很明显，编译器会发现它已经是一个数组，所以不会在其上执行任何转换。因此，如果有一组事物，可以把它们当作列表传递，而如果你已经有了一个数组，该方法可以把它们当作可变参数列表来接受。
+
+该程序的最后一行表明将 0 个参数传递给可变参数列表是可行的，当具有可选的尾随参数时，这一特性就会很有用：
+
+```java
+public class OptionalTrailingArguments{
+    static void f(int required,String... trailing){
+        System.out.print("required: " + required + " ");
+        for(String s : trailing){
+            System.out.print(s + " ");
+        }
+        System.out.println();
+    }
+    public static void main(String[] args){
+        f(1,"one");
+        f(2,"two","three");
+        f(0);
+    }
+}
+/**
+Output:
+required: 1 one
+required: 2 two three
+required: 0
+*/
+```
+
+这个程序还展示了你可以如何使用具有Object之外类型的可变参数列表。这里所有的可变参数都必须是String对象。在可变参数列表中可以使用任何类型的参数，包括基本类型。
+
+**在不使用参数调用 f() 时，编译器就无法知道应该调用哪一个方法了。可以通过在某个方法中增加一个非可变参数来解决问题。**
+
+## 枚举类型
+
+```java
+public enum Spiciness{
+    NOT,MILD,MEDIUM,HOT,FLAMING
+}
+```
+
+这里创建了一个名为Spiciness的枚举类型，它具有5个具名值。由于枚举类型的实例是常量，因此按照命名惯例它们都用大写字母表示（如果一个名字中有多个单词，用下划线将它们隔开）。
+
+为了使用enum，需要创建一个该类型的引用，并将其复制给某个实例：
+
+```java
+public class SimpleEnumUse{
+    public static void main(String[] args){
+        Spiciness howHot = Spiciness.MEDIUM;
+        System.out.println(howHot);
+    }
+}
+/**
+MEDIUM
+*/
+```
+
+在创建enum时，编译器会自动添加一些有用的特性。例如，它会创建 toString() 方法，以便可以很方便地显示某个enum实例的名字，这正是上面的打印语句如何产生输出的答案。编译器还会创建 ordinal() 方法，用来表示某个特定 enum 常量的声明顺序，以及 static values() 方法，用来按照  enum 常量的声明顺序，产生由这些常量值构成的数组：
+
+```java
+public class EnumOrder{
+    public static void main(String[] args){
+        for(Spiciness s : Spiciness.values()){
+            System.out.println(s + ",ordinal " + s.ordinal());
+        }
+    }
+}
+/**
+Output:
+NOT,ordinal 0
+MILD,ordinal 1
+MEDIUM,ordinal 2
+HOT,ordinal 3
+FLAMING,ordinal 4
+*/
+```
+
+尽管enum看起来像是一种新的数据类型，但是这个关键字只是为enum生成对应的类时，产生了某些编译器行为，因此在很大程度上，你可以将enum当做其他任何类来处理。事实上，enum确实是类，并且有自己的方法。
+
+enum有一个特别实用的特性，即它可以在switch语句内使用。
+
+**在19章还会继续。这里提醒自己。（希望能坚持到19章）**
