@@ -472,4 +472,5 @@ Java加载方式：Java中的所有事物都是对象。记住，每个类的编
 
 - 构造器也是static方法，尽管static关键字并没有显示地写出来。因此更准确地讲，类是在其任何static承压云被访问时加载的。
 
-初次使用之处也是static初始化发生之处。所有static对象和static代码段都会在加载时依程序中的顺序（即，定义类时的书写顺序）而依次初始化。当然，定义为static的东西只会被初始化一次。
+初次使用之处也是static初始化发生之处。所有static对象和static代码段都会在加载时依程序中的顺序（即，定义类时的书写顺序）而依次初始化。当然，定义为static的东西只会被初始化一次。  
+[练习题](https://github.com/wangwren/Java/tree/master/Chapter7Exercise/src/resuing)
