@@ -566,4 +566,5 @@ public class RTTI {
 
 如果我们试图调用 u() 方法（它只存在于MoreUseful），就会返回一条编译时出错消息。
 
-如果想访问MoreUseful对象的扩展接口，就可以尝试进行向下转型。如果所转类型是正确的类型，那么转型成功；否则，就会返回一个ClassCastException异常。
+如果想访问MoreUseful对象的扩展接口，就可以尝试进行向下转型。如果所转类型是正确的类型，那么转型成功；否则，就会返回一个ClassCastException异常。  
+[练习题](https://github.com/wangwren/Java/tree/master/Chapter8Exercise/src/polymorphism)
