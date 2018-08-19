@@ -6,3 +6,4 @@
 ## [初始化与清理](https://github.com/wangwren/Java/blob/master/Initialization%20%26%20Cleanup.md)
 ## [访问控制权限](https://github.com/wangwren/Java/blob/master/Access%20Control.md)
 ## [复用类](https://github.com/wangwren/Java/blob/master/Reusing%20Classes.md)
+## [多态](https://github.com/wangwren/Java/blob/master/Polymorphism.md)
