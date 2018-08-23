@@ -245,7 +245,7 @@ Waveform 0
 
 将接口从具体实现中解耦使得接口可以应用于多种不同的具体实现，因此代码也就更具可复用性。
 
-[以上代码对应地址]()
+[以上代码对应地址](https://github.com/wangwren/Java/tree/master/Chapter9Exercise/src/interfaces/interfaceprocessor)
 
 ## Java中的多重继承
 
