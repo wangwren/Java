@@ -249,3 +249,361 @@ Waveform 0
 
 ## Java中的多重继承
 
+在导出类中，不强制要求必须有一个是抽象的或“具体的”（没有任何抽象方法的）基类。如果要从一个非接口的类继承，那么只能从一个类去继承。其余的元素都必须是接口。需要将所有的接口都置于 implements 关键字之后，用**逗号**将它们一一隔开。可以继承任意多个接口，并可以向上转型为每个接口，因为接口都是一个独立的类型。
+
+```java
+package interfaces.adventure;
+
+interface CanFight{
+	void fight();
+}
+
+interface CanSwin{
+	void swim();
+}
+
+interface CanFly{
+	void fly();
+}
+
+class ActionCharacter{
+	public void fight() {
+		
+	}
+}
+
+class Hero extends ActionCharacter implements CanFight,CanSwin,CanFly{
+	//CanFight接口与ActionCharacter类中的fight()方法的特征签名是一样的，而且在Hero
+	//中并没有提供 fight() 的定义。
+	@Override
+	public void fly() {
+		
+	}
+
+	@Override
+	public void swim() {
+		
+	}
+	
+}
+
+public class Adventure {
+
+	public static void t(CanFight x) {
+		x.fight();
+	}
+	public static void u(CanSwin x) {
+		x.swim();
+	}
+	public static void v(CanFly x) {
+		x.fly();
+	}
+	public static void w(ActionCharacter x) {
+		x.fight();
+	}
+	public static void main(String[] args) {
+		Hero h = new Hero();
+		t(h);	//Treat it as a CanFight
+		u(h);	//Treat it as a CanSwim
+		v(h);	//Treat it as a CanFly
+		w(h);	//Treat it as an ActionCharacter
+	}
+}
+```
+
+Hero组合了具体类ActionCharacter和接口CanFight、CanSwim和CanFly。当通过这种方式将一个具体类和多个接口组合到一起时，这个具体类必须放在前面，后面跟着的才是接口（否则编译器会报错）。
+
+**注意：**，CanFight接口与ActionCharacter类中的fight()方法的特征签名是一样的，而且，在 Hero 中并没有提供 fight()的定义。可以扩展接口，但是得到的只是另一个接口。当想要创建对象时，所有的定义首先必须都存在。**即使 Hero 没有显示地提供 fight() 的定义，其定义也因 ActionCharacter而随之而来，这样就使得创建 Hero对象成为了可能。**
+
+一定要记住，前面的例子所展示的就是使用接口的核心原因：
+
+- 为了能够向上转型为多个基类型（以及由此而带来的灵活性）。
+- 使用接口的第二个原因却是与使用抽象基类相同：防止客户端程序员创建该类的对象，并确保这仅仅是建立一个接口。
+
+问题：我们应该使用接口还是抽象类？
+
+> 如果要创建不带任何方法定义和成员变量的基类，那么就应该选择接口而不是抽象类。
+
+## 通过继承来扩展接口
+
+```java
+package interfaces.adventure;
+
+interface Monster{
+	void menace();
+}
+
+interface DangerousMonster extends Monster{
+	void destory();
+}
+
+interface Lethal{
+	void kill();
+}
+
+class DragonZilla implements DangerousMonster{
+
+	@Override
+	public void menace() {
+		
+	}
+
+	@Override
+	public void destory() {
+		
+	}
+}
+
+interface Vampire extends DangerousMonster,Lethal{
+	void drinkBlood();
+}
+
+class VeryBadVampire implements Vampire{
+
+	@Override
+	public void destory() {
+		
+	}
+
+	@Override
+	public void menace() {
+		
+	}
+
+	@Override
+	public void kill() {
+		
+	}
+
+	@Override
+	public void drinkBlood() {
+		
+	}
+}
+
+public class HorrorShow {
+
+	static void u(Monster b) {
+		b.menace();
+	}
+	static void v(DangerousMonster d) {
+		d.menace();
+		d.destory();
+	}
+	
+	static void w(Lethal l) {
+		l.kill();
+	}
+	public static void main(String[] args) {
+		DangerousMonster barney = new DragonZilla();
+		u(barney);
+		v(barney);
+		Vampire vlad = new VeryBadVampire();
+		u(vlad);
+		v(vlad);
+		w(vlad);
+	}
+}
+```
+
+**在Vampire中使用的语法仅适用于接口继承。一般情况下，只可以将extends用于单一类，但是可以引用多个基类接口。就像所看到的，只需用逗号将接口名一一分隔开即可。**
+
+## 适配接口
+
+接口一种常见用法就是前面提到的**策略设计模式**，此时你编写一个执行某些操作的方法，而方法将接受一个同样是你指定的接口。你主要就是要声明：**你可以用任何你想要的对象来调用我的方法，只要你的对象遵循我的接口**，这使得你的方法更加灵活、通用，并更具可复用性。
+
+例如，Java SE5的 Scanner类的构造器接受的就是一个 Readable接口。你会发现 Readable没有用作Java标准类库中其他任何方法的参数，它是单独为 Scanner创建的，以使得 Scanner 不必将其参数限制为某个特定类。通过这种方式，Scanner可以作用于更多的类型。如果你创建了一个新的类，并且想让 Scanner可以作用于它，那么你就应该让它成为 Readable。
+
+```java
+package interfaces.adventure;
+
+import java.io.IOException;
+import java.nio.CharBuffer;
+import java.util.Random;
+import java.util.Scanner;
+
+public class RandomWords implements Readable {
+
+	private static Random rand = new Random(47);
+	private static final char[] capitals = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
+	private static final char[] lowers = "abcdefghijklmnopqrstuvwxyz".toCharArray();
+	private static final char[] vowels = "aeiou".toCharArray();
+	private int count;
+	public RandomWords(int count) {
+		this.count = count;
+	}
+	
+	@Override
+	public int read(CharBuffer cb) throws IOException {
+		
+		if(count-- == 0)
+			return -1;
+		
+		cb.append(capitals[rand.nextInt(capitals.length)]);
+		for(int i = 0;i < 4;i++) {
+			cb.append(vowels[rand.nextInt(vowels.length)]);
+			cb.append(lowers[rand.nextInt(lowers.length)]);
+		}
+		cb.append(" ");
+		return 10;
+		
+	}
+	
+	public static void main(String[] args) {
+		Scanner sc = new Scanner(new RandomWords(10));
+		while(sc.hasNext()) {
+			System.out.println(sc.next());
+		}
+	}
+
+}
+/**
+Yazeruyac
+Fowenucor
+Goeazimom
+Raeuuacio
+Nuoadesiw
+Hageaikux
+Ruqicibui
+Numasetih
+Kuuuuozog
+Waqizeyoy
+*/
+```
+
+Readable接口只要求实现 read()方法，在read()内部，将输入内容添加到CharBuffer参数中，或者在没有任何输入时返回-1。
+
+## 接口中的域
+
+因为放入**接口中的域都自动是 static 和 final 的**，所以接口就成为了一种很便捷的用来创建常量组的工具。
+
+在JavaSE5之前，这是产生与C或C++中的enum（枚举类型）具有相同效果的类型的唯一途径。
+
+有了JavaSE5，就可以使用更加强大而灵活的enum关键字，因此，使用接口来群组常量已经显得没什么意义了。
+
+### 初始化接口中的域
+
+在接口中定义的域不能是“空final”，但是可以被非常量表达式初始化。
+
+```java
+import java.util.*;
+public interface RandVals{
+    Random RAND = new Random(47);
+    int RANDOM_INT = RAND.nextInt(10);
+    long RANDOM_LONG = RAND.nextLong() * 10;
+    float RANDOM_FLOAT = RAND.nextLong() * 10;
+    double RANDOM_DOUBLE = RAND.nextDouble() * 10;
+}
+```
+
+既然域是 static 的，它们就可以在类第一次被加载时被初始化，这发生在任何域首次被访问时。
+
+```java
+public class TestRandVals{
+    public static void main(String[] args){
+        System.out.println(RandVals.RANDOM_INT);
+        System.out.println(RandVals.RANDOM_LONG);
+        System.out.println(RandVals.RANDOM_FLOAT);
+        System.out.println(RandVals.RANDOM_DOUBLE);
+    }
+}
+/**
+8
+-32032247016559954
+-8.5939291E18
+5.779976127815049
+*/
+```
+
+当然，这些域不是接口的一部分，**它们的值被存储在该接口的静态存储区域内。**
+
+## 接口与工厂
+
+接口是实现多重继承的途径，而生成遵循某个接口的对象的典型方式就是**工厂方法设计模式**。这与直接调用构造器不同，我们在工厂对象上调用的是创建方法，而该工厂对象将生成接口的某个实现的对象。理论上，我们的代码将完全与接口的实现分离，这就使得我们可以透明地将某个实现替换为另一个实现。
+
+```java
+package interfaces.adventure;
+
+interface Service{
+	void method1();
+	void method2();
+}
+
+interface ServiceFactory{
+	Service getService();
+}
+
+class Implementation1 implements Service{
+
+	public Implementation1() {
+
+	}
+	
+	@Override
+	public void method1() {
+		System.out.println("Implementation1 method1");
+	}
+
+	@Override
+	public void method2() {
+		System.out.println("Implementation1 method2");
+	}
+}
+
+class Implementation1Factory implements ServiceFactory{
+
+	@Override
+	public Service getService() {
+		return new Implementation1();
+	}
+}
+
+class Implementation2 implements Service{
+
+	public Implementation2() {
+
+	}
+	
+	@Override
+	public void method1() {
+		System.out.println("Implementation2 method1");
+	}
+
+	@Override
+	public void method2() {
+		System.out.println("Implementation2 method2");
+	}
+}
+
+class Implementation2Factory implements ServiceFactory{
+
+	@Override
+	public Service getService() {
+		return new Implementation2();
+	}
+}
+
+public class Factories {
+
+	public static void serviceConsumer(ServiceFactory fact) {
+		Service s = fact.getService();
+		s.method1();
+		s.method2();
+	}
+	
+	public static void main(String[] args) {
+		serviceConsumer(new Implementation1Factory());
+		serviceConsumer(new Implementation2Factory());
+	}
+}
+/**
+Implementation1 method1
+Implementation1 method2
+Implementation2 method1
+Implementation2 method2
+*/
+```
+
+如果不是用工厂方法，代码就必须在某处指定要创建的Service的确切类型，以便调用合适的构造器。
+
+**恰当的原则应该是优先选择类而不是接口。从类开始，如果接口的必需性变得非常明确，那么就进行重构。接口是一种重要的工具，但是它们容易被滥用。**
