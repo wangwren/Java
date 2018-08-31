@@ -346,3 +346,380 @@ TrackingSlip 类被嵌入在if语句的作用域内，这并不是说该类的�
 
 ## 匿名内部类
 
+```java
+package innerclasses;
+
+public class Parcel7 {
+
+	public Contents contents() {
+		return new Contents() {//insert a class definition
+			private int i = 11;
+
+			@Override
+			public int value() {
+				return i;
+			}
+		};
+	}
+	
+	public static void main(String[] args) {
+		Parcel7 p = new Parcel7();
+		Contents c = p.contents();
+	}
+}
+```
+
+contents()方法将返回值得生成与表示这个返回值的类的定义结合在一起！另外，这个类时匿名的，它没有名字。更糟的是，看起来似乎是正要创建一个 Contents 对象。但是然后（在到达语句结束的分号之前）你却说：“等等，我想要在这里插入一个类的定义。”
+
+这种奇怪的语法是指**创建一个继承自Contents的匿名类的对象**。通过 new表达式返回的引用被自动向上转型为对 Contents的引用。上述匿名内部类的语法是下述形式的简化形式：
+
+```java
+public class Parcel7b{
+    class MyContents implements Contents{
+        private int i = 11;
+        public int value(){
+            return i;
+        }
+    }
+    public Contents contents(){
+        return new MyContents();
+    }
+    public static void main(String[] args){
+        Parcel7b p = new Parcel7b();
+        Contents c = p.contents();
+    }
+}
+```
+
+在这个匿名内部类中，使用了默认的构造器来生成Contents。下面的代码展示的是，如果你的基类需要一个有参数的构造器，应该怎么办：
+
+```java
+package innerclasses;
+
+public class Parcel8 {
+
+	public Warpping warpping(int x) {
+		return new Warpping(x) {
+			public int value() {
+				return super.value() * 47;
+			}
+		};
+	}
+	
+	public static void main(String[] args) {
+		Parcel8 p = new Parcel8();
+		Warpping w = p.warpping(10);
+	}
+}
+```
+
+只需简单地传递合适的参数给基类的构造器即可，这里是将 x 传进 new Warpping(x) 。尽管Warpping只是一个具有具体实现的普通类，但它还是被其导出类当作公共“接口”来使用:
+
+```java
+package innerclasses;
+
+public class Warpping {
+
+	private int i;
+	public Warpping(int x) {
+		i = x;
+	}
+	public int value() {
+		return i;
+	}
+}
+```
+
+Warpping拥有一个要求传递一个参数的构造器，这使得事情变得更加有趣了。
+
+在匿名内部类末尾的分号，并不是用来标记此内部类结束的，实际上，它标记的是表达式的结束，只不过这个表达式正巧包含了匿名内部类罢了。因此，这与别的地方使用的分号是一致的。
+
+在匿名类中定义字段时，还能够对其执行初始化操作：
+
+```java
+package innerclasses;
+
+public class Parcel9 {
+	
+	/*
+	 *  Java 编程思想用的是 Java 5 的编译器。
+	 *  在 Java 8 之前的所有版本的 Java，
+	 *  局部内部类和匿名内部类访问的局部变量必须由final修饰，
+	 *  java8开始，可以不加final修饰符，由系统默认添加。
+	 *  java将这个功能称为：Effectively final 功能。
+	 */
+	public Destination destination(final String dest) {//java8 可以不加final
+		
+		return new Destination() {
+			private String label = dest;
+			@Override
+			public String readLabel() {
+				return label;
+			}
+		};
+	}
+	public static void main(String[] args) {
+		Parcel9 p = new Parcel9();
+		Destination d = p.destination("Tasmania");
+	}
+}
+```
+
+如果定义一个匿名内部类，并且**希望它使用一个在其外部定义的对象，那么编译器会要求其参数引用是 final 的**，就像在destination()的参数中看到的那样。如果忘记了，将会得到一个编译时错误消息（在Java8之前，会有报错消息，java8就没有报错消息了）。
+
+如果想做一些类似构造器的行为，在匿名类中不可能有命名构造器（因为它根本没有名字！），但通过**实例初始化**，就能够达到为匿名内部类创建一个构造器的效果，就像这样：
+
+```java
+package innerclasses;
+
+abstract class Base{
+	public Base(int i) {
+		System.out.println("Base constructor,i = " + i);
+	}
+	public abstract void f();
+}
+
+public class AnonymousConstructor {
+
+	public static Base getBase(int i){
+		return new Base(i) {
+			
+			//代码块，实例初始化
+			{
+				System.out.println("Inside instance initializer");
+			}
+			
+			@Override
+			public void f() {
+				System.out.println("In anonymous f()");
+			}
+		};
+	}
+	public static void main(String[] args) {
+		Base base = getBase(47);
+		base.f();
+	}
+}
+/**
+Base constructor,i = 47
+Inside instance initializer
+In anonymous f()
+*/
+```
+
+在此例中，**不要求变量 i 一定是final的。因为 i 被传递给匿名类的基类的构造器，它并不会在匿名类内部被直接调用。**
+
+下例是带实例初始化的“parcel”形式。**注意destination()的参数必须是final的，因为它们是在匿名类内部使用的。**
+
+```java
+package innerclasses;
+
+public class Parcel10 {
+
+	public Destination destination(final String dest,final float price) {
+		return new Destination() {
+			private int cost;
+			{
+				cost = Math.round(price);
+				if(cost > 100) {
+					System.out.println("Over budget!");
+				}
+			}
+			
+			private String label = dest;
+			
+			@Override
+			public String readLabel() {
+				return label;
+			}
+		};
+	}
+	public static void main(String[] args) {
+		Parcel10 p = new Parcel10();
+		Destination d = p.destination("Tasmania", 101.395F);
+	}
+}
+/**
+Over budget!
+*/
+```
+
+对于匿名内部类而言，实例初始化的实际效果就是构造器。当然它受到了限制---**你不能重载实例初始化方法，所以你仅有一个这样的构造器。**
+
+匿名内部类与正规继承相比有些受限，**因为匿名内部类既可以扩展类，也可以实现接口，但是两者不能兼备。而且如果是实现接口，也只能实现一个接口。**
+
+### 再访工厂方法
+
+```java
+package innerclasses;
+
+interface Service{
+	void method1();
+	void method2();
+}
+
+interface ServiceFactory{
+	Service getService();
+}
+
+class Implementation1 implements Service{
+	private Implementation1(){
+		
+	}
+
+	@Override
+	public void method1() {
+		System.out.println("Implementation1.method1");
+	}
+
+	@Override
+	public void method2() {
+		System.out.println("Implementation1.method2");
+	}
+	public static ServiceFactory factory = 
+			new ServiceFactory() {
+
+				@Override
+				public Service getService() {
+					return new Implementation1();
+				}
+	};
+}
+
+class Implementation2 implements Service{
+	private Implementation2(){
+		
+	}
+
+	@Override
+	public void method1() {
+		System.out.println("Implementation2.method1");
+	}
+
+	@Override
+	public void method2() {
+		System.out.println("Implementation2.method2");
+	}
+	public static ServiceFactory factory = 
+			new ServiceFactory() {
+
+				@Override
+				public Service getService() {
+					return new Implementation2();
+				}
+	};
+}
+
+public class Factories {
+
+	public static void serviceConsumer(ServiceFactory fact) {
+		Service s = fact.getService();
+		s.method1();
+		s.method2();
+	}
+	public static void main(String[] args) {
+		serviceConsumer(Implementation1.factory);
+		serviceConsumer(Implementation2.factory);
+	}
+}
+/**
+Implementation1.method1
+Implementation1.method2
+Implementation2.method1
+Implementation2.method2
+*/
+```
+
+现在用Implementation1和Implementation2的构造器都可以是private的，并且没有任何必要去创建作为工厂的具名类。另外，你经常值需要单一的工厂对象，因此在本例中它被创建为Service实现中的一个static域。这样所产生语法也更具有实际意义。
+
+请记住在第9章最后给出的建议：**优先使用类而不是接口。如果你的设计中需要某个接口，你必须了解它。否则，不到迫不得已，不要将其放到你的设计中。**
+
+## 嵌套类
+
+如果不需要内部类对象与其外围类对象之间有联系，那么可以将内部类声明为static。这通常称为**嵌套类**。
+
+理解static应用于内部类时的含义，就必须记住，普通的内部类对象隐式地保存了一个引用，指向创建它的外围类对象。然而，当内部类时static时，就不是这样了。嵌套类意味着：
+
+1. 要创建嵌套类的对象，并不需要其外围类的对象。
+2. 不能从嵌套类的对象中访问非静态的外围类对象。
+
+嵌套类与普通的内部类还有一个区别。普通内部类的字段与方法，只能放在类的外部层次上，所以普通的内部类不能有static数据和static字段，也不能包含嵌套类。但是嵌套类可以包含所有这些东西：
+
+```java
+package innerclasses;
+
+public class Parcel11 {
+
+	private static class ParcelContents implements Contents{
+		
+		private int i = 11;
+		@Override
+		public int value() {
+			return i;
+		}
+	}
+	protected static class ParcelDestination implements Destination{
+		
+		private String label;
+		private ParcelDestination(String whereTo) {
+			label = whereTo;
+		}
+		@Override
+		public String readLabel() {
+			return label;
+		}
+		public static void f() {
+			}
+		static int x = 10;
+		static class AnotherLevel{
+			public static void f() {
+			}
+			static int x = 10;
+		}
+	}
+	public static Destination destination(String s) {
+		return new ParcelDestination(s);
+	}
+	public static Contents contents() {
+		return new ParcelContents();
+	}
+	public static void main(String[] args) {
+		Contents c = contents();
+		Destination d = destination("Tasmania");
+	}
+}
+```
+
+在main()中，没有任何Parcel11的对象是必须的；而是使用选取static成员的普通语法来调用方法---这些方法返回对Contents和Destination的引用。
+
+就像在本章前面看到的那样，在一个普通的（非static）内部类中，通过一个特殊的this引用可以链接到其外围类对象。嵌套类就没有这个特殊的 this 引用，这使得它类似于一个static方法。
+
+### 接口内部的类
+
+正常情况下，不能在接口内部放置任何代码，但嵌套类可以作为接口的一部分。放到接口中的任何类都自动地是public和static。因为类是static的，只是将嵌套类置于接口的命名空间内，这并不违反接口的规则。甚至可以在内部类中实现其外围接口，就像下面这样：
+
+```java
+package innerclasses;
+
+public interface ClassInInterface {
+	void howdy();
+	class Test implements ClassInInterface{
+
+		@Override
+		public void howdy() {
+			System.out.println("Howdy!");
+		}
+		public static void main(String[] args) {
+			new Test().howdy();
+		}
+	}
+}
+/**
+Howdy!
+*/
+```
+
+如果想要创建某些公共代码，使得它们可以被某个接口的所有不同实现所共用，那么使用接口内部的嵌套类显得很方便。
+
+### 从多层嵌套类中访问外部类成员
+
