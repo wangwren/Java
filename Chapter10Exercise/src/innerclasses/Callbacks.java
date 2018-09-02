@@ -69,7 +69,7 @@ public class Callbacks {
 		
 		caller1.go();
 		caller1.go();
-		caller2.go();	//caller2 获得的是Closure，该类是Callee2j的内部类，并且Closure实现了Incrementable接口
+		caller2.go();	//caller2 获得的是Closure，该类是Callee2的内部类，并且Closure实现了Incrementable接口
 		caller2.go();
 	}
 }
