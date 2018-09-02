@@ -723,3 +723,180 @@ Howdy!
 
 ### 从多层嵌套类中访问外部类成员
 
+一个内部类被嵌套多少层并不重要，它能透明地访问所有它嵌入的外围类的所有成员。
+
+```java
+class MNA{
+    private void f(){
+        
+    }
+    class A{
+        private void g(){
+            
+        }
+        public class B{
+            void h(){
+                g();
+                f();
+            }
+        }
+    }
+}
+public class MultiNestingAccess{
+    public static void main(String[] args){
+        MNA mna = new MNA();
+        MNA.A mnaa = mna.new A();
+        MNA.A.B mnaab = mnaa.new B();
+        mnaab.h();
+    }
+}
+```
+
+可以看到在MNA.A.B中，调用方法g()和f()不需要任何条件（即使他们被定义为private）。这个例子同时展示了如何从不同的类里创建多层嵌套的内部类对象的基本语法。“.new”语法能产生正确的作用域，所以不必在调用构造器时限定类名。
+
+## 为什么需要内部类
+
+> 每个内部类都能独立地继承自一个（接口的）实现，所以无论外围类是否已经继承了某个（接口的）实现，对于内部类都没有影响。
+
+如果没有内部类提供的、可以继承多个具体的抽象的类的能力，一些设计与编程问题就很难解决。从这个角度看，内部类使得多重继承的解决方案变得完整。接口解决了部分问题，而内部类有效地实现了“多重继承”。也就是说，内部类允许继承多个非接口类型（译注:类或抽象类）。
+
+为了看到更多的细节，让我们看到更多的细节，让我们考虑这样一种情形：即必须在一个类中以某种方式实现两个接口。由于接口的灵活性，有两种选择：使用单一类，或者使用内部类：
+
+```java
+interface A{}
+interface B{}
+class X implements A,B{}
+class Y implements A{
+    B makeB{
+        return new B();
+    }
+}
+public class MultiInterfaces{
+    static void takesA(A a){}
+    static void takesB(B b){}
+    public static void main(String[] args){
+        X x = new X();
+        Y y = new Y();
+        takesA(x);
+        takesA(y);
+        takesB(x);
+        takesB(y.makeB());
+    }
+}
+```
+
+如果拥有的是**抽象**的类或具体的类，而不是接口，那就只能使用内部类才能实现多重继承。
+
+如果不需要解决“多重继承”的问题，那么自然可以用别的方式编码，而不需要使用内部类。但如果使用内部类，还可以获得其他一些特性：
+
+1. 内部类可以有多个实例，每个实例都有自己的状态信息，并且与其外围类对象的信息相互独立。
+2. 在单个外围类中，可以让多个内部类以不同的方式实现同一个接口，或继承同一个类。
+3. 内部类并没有令人迷惑的“is-a”关系；它就是一个独立的实体。
+
+举个例子，如果Sequence.java不使用内部类，就必须声明“Sequence是一个Selector”，对于某个特定的Sequence只能有一个Selector。然而使用内部类很容易就能拥有另一个方法 reverseSelector()，用它来生成一个反方向遍历序列的Selector。只有内部类才有这种灵活性。
+
+### 闭包与回调
+
+> 闭包是一个可调用的对象，它记录了一些信息，这些信息来自于创建它的作用域。
+
+通过这个定义，可以看出内部类是面向对象的闭包，因为它不仅包含外围类对象（创建内部类的作用域）的信息，还自动拥有一个指向此外围类对象的引用，在此引用域内，内部类有权操作所有的成员，包括private成员。
+
+> 回调，通过回调，对象能够携带一些信息，这些信息允许它在稍后的某个时刻调用初始的对象。
+
+```java
+package innerclasses;
+
+interface Incrementable{
+	void increment();
+}
+
+class Callee1 implements Incrementable{
+
+	private int i = 0;
+	
+	@Override
+	public void increment() {
+		i++;
+		System.out.println(i);
+	}
+}
+
+class MyIncrement{
+	public void increment() {
+		System.out.println("Other operation");
+	}
+	static void f(MyIncrement mi) {
+		mi.increment();
+	}
+}
+
+class Callee2 extends MyIncrement{
+	private int i = 0;
+	public void increment() {
+		super.increment();
+		i++;
+		System.out.println(i);
+	}
+	
+	//Callee2的内部类，并实现Incrementable接口
+	private class Closure implements Incrementable{
+
+		@Override
+		public void increment() {
+			Callee2.this.increment();	//调用的是Callee2的increment方法
+		}
+	}
+	
+	Incrementable getCallbackReference() {
+		return new Closure();
+	}
+}
+
+class Caller{
+	private Incrementable callbackReference;
+	Caller(Incrementable cbh){
+		callbackReference = cbh;
+	}
+	void go() {
+		callbackReference.increment();
+	}
+}
+
+public class Callbacks {
+
+	public static void main(String[] args) {
+		Callee1 c1 = new Callee1();
+		Callee2 c2 = new Callee2();
+		
+		MyIncrement.f(c2);
+		
+		Caller caller1 = new Caller(c1);
+		Caller caller2 = new Caller(c2.getCallbackReference());
+		
+		caller1.go();
+		caller1.go();
+		caller2.go();	//caller2 获得的是Closure，该类是Callee2的内部类，并且Closure实现了Incrementable接口
+		caller2.go();
+	}
+}
+
+/*
+ *输出结果
+ *
+ *Other operation 	--->>MyIncrement.f(c2);
+	1				--->>MyIncrement.f(c2);
+	1				--->>caller1.go();
+	2				--->>caller1.go();
+	Other operation	--->>caller2.go();
+	2				--->>caller2.go();	由于Closure是c2调用生成的，其中increment()方法，
+										又是使用Callee2.this 获得到的当前对象即c2，c2中的i在之前已经被调用过了，当时i为1，所以这里又调用了一遍，此时i为2
+	Other operation --->>caller2.go();
+	3				--->>caller2.go();
+ *
+ */
+```
+
+内部类Closure实现了Incrementable，以提供一个返回Callee2的“钩子”（hook），即Callee2.this.increment()。而且是一个安全的钩子。无论谁获得此Incrementable的引用，都只能调用increment()，除此之外没有其他功能。
+
+### 内部类与控制框架
+
