@@ -1,6 +1,6 @@
 # 内部类
 
-> 可以将一个类的定义放在另一个类的定义内部，这就是内部类
+> 1可以将一个类的定义放在另一个类的定义内部，这就是内部类
 
 ## 创建内部类
 
@@ -898,5 +898,142 @@ public class Callbacks {
 
 内部类Closure实现了Incrementable，以提供一个返回Callee2的“钩子”（hook），即Callee2.this.increment()。而且是一个安全的钩子。无论谁获得此Incrementable的引用，都只能调用increment()，除此之外没有其他功能。
 
-### 内部类与控制框架
+## 内部类的继承
+
+因为内部类的构造器必须连接到指向其外围类对象的引用，所以在继承内部类的时候，事情会变得有点复杂。问题在于，那个指向外围类对象的“秘密的”引用必须被初始化，而在导出类中不再存在可连接的默认对象。要解决这个问题，必须使用特殊的语法来明确说清它们之间的关联：
+
+```java
+package innerclasses;
+
+class WithInner{
+	class Inner{
+		
+	}
+}
+
+public class InheritInner extends WithInner.Inner {
+	InheritInner(WithInner wi){
+		wi.super();	//继承自内部类，必须加上这句代码编译才能通过
+	}
+	public static void main(String[] args) {
+		WithInner wi = new WithInner();
+		InheritInner i1 = new InheritInner(wi);
+	}
+}
+```
+
+可以看到，InheritInner只能继承自内部类，而不是外部类。但是当要生成一个构造器时，默认的构造器并不算好，而且不能只是传递一个指向外围类对象的引用。此外，必须在构造器内使用如下语法:
+
+```java
+enclosingClassReference.super()
+```
+
+这样才提供了必要的引用，然后程序才能编译通过。
+
+## 内部类可以被覆盖吗
+
+如果创建了一个内部类，然后继承其外围类并重新定义此内部类时，也就是说，内部类可以被覆盖吗？“覆盖”内部类就好像它是外围类的一个方法，其实并不起什么作用：
+
+```java
+class Egg{
+    private Yolk y;
+    protected class Yolk{
+        public Yolk(){
+            System.out.println("Egg.Yolk()");
+        }
+    }
+    public Egg(){
+        System.out.println("New Egg()");
+        y = new Yolk();
+    }
+}
+public class BigEgg extends Egg{
+    public class Yolk{
+        public Yolk(){
+            System.out.println("BigEgg.Yolk()");
+        }
+    }
+    public static void main(String[] args){
+        new BigEgg();
+    }
+}
+/**
+Output:
+New Egg()
+Egg.Yolk()
+*/
+```
+
+默认的构造器是编译器自动生成的，这里是调用基类的默认构造器。你可能认为既然创建了BigEgg的对象，那么所使用的应该是“覆盖后”的Yolk版本，但从输出中可以看到实际情况并不是这样。
+
+这个例子说明，当继承了某个外围类的时候，内部类并没有发生什么特别神奇的变化。这两个内部类是完全独立的两个实体，各自在自己的命名空间内。当然，明确地继承某个内部类也是可以的：
+
+```java
+	package innerclasses;
+
+class Egg2{
+	protected class Yolk{
+		public Yolk() {
+			System.out.println("Egg2.Yolk()");
+		}
+		public void f() {
+			System.out.println("Egg2.Yolk.f()");
+		}
+	}
+	private Yolk y = new Yolk();
+	public Egg2() {
+		System.out.println("New Egg2");
+	}
+	public void insertYolk(Yolk yy) {
+		y = yy;
+	}
+	public void g() {
+		y.f();
+	}
+}
+
+public class BigEgg2 extends Egg2 {
+	public class Yolk extends Egg2.Yolk{
+		public Yolk() {
+			System.out.println("BigEgg2.Yolk()");
+		}
+		public void f() {
+			System.out.println("BigEgg2.Yolk.f()");
+		}
+	}
+	public BigEgg2() {
+		insertYolk(new Yolk()); //调的父类方法
+	}
+	
+	public static void main(String[] args) {
+		Egg2 e2 = new BigEgg2();
+		e2.g();
+	}
+}
+/**
+Egg2.Yolk()   //Egg2构造器，Egg2内部类
+New Egg2
+Egg2.Yolk()   //BigEgg2中的Yolk是继承自Egg2.Yolk类，所以先初始化父类，即Egg2.Yolk类
+BigEgg2.Yolk()
+BigEgg2.Yolk.f()
+*/
+```
+
+现在BigEgg2.Yolk通过 extends Egg2.Yolk明确继承了此内部类，并且覆盖了其中的方法。insertYolk() 方法允许 BigEgg2 将自己的Yolk对象向上转型为 Egg2 中的引用 y。所以当 g() 调用 y.f() 时，覆盖后的新版的 f() 被执行。第二次调用Egg2.Yolk()，结果是BigEgg2.Yolk的构造器调用了其基类的构造器。可以看到在调用 g() 的时候，新版的 f() 被调用了。
+
+## 局部内部类
+
+前面提到过，可以在代码块里创建内部类，典型的方式是在一个方法体的里面创建。局部内部类不能有访问说明符，因为它不是外围类的一部分；但是它可以访问当前代码块内的常量，以及此外围类的所有成员。
+
+为什么使用局部内部类而不是匿名内部类？唯一的理由是，我们需要一个已命名的构造器，或者需要重载构造器，而匿名内部类只能用于实例初始化。
+
+所以使用局部内部类而不使用匿名内部类的另一个理由就是，需要不止一个该内部类的对象。
+
+## 内部类标识符
+
+由于每个类都会产生一个 .class 文件，其中包含了如何创建该类型的对象的全部信息（此信息产生一个"meta-class"，叫做Class对象），你可能猜到了，内部类也必须生成一个 .class 文件以包含它们的Class对象信息。这些类文件的命名有严格的规则：外围类的名字，加上`$`，再加上内部类的名字。
+
+如果内部类是匿名的，编译器会简单地产生一个数字作为其标识符。如果内部类是嵌套在别的内部类之中，只需直接将它们的名字加在其外围类标识符与`$`的后面。
+
+虽然这种命名格式简单而直接，但它还是很健壮的，足以应对绝大多数情况。因为这是Java的标准命名方式，所以产生的文件自动都是平台无关的。
 
