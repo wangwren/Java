@@ -120,3 +120,172 @@ add()方法的名称就表明它是要将一个新元素放置到Collection中�
 
 ## 添加一组元素
 
+在java.util包中的 Arrays 和 Collections 类中都有很多实用方法，可以在一个Collection中添加一组元素。
+
+- Arrays.asList()方法接受一个数组或是一个用逗号分隔的元素列表（使用可变参数），并将其转换为一个List对象。
+- Collections.addAll()方法接受一个Collection对象，以及一个数组或是一个用逗号分割的列表，将元素添加到Collection中。
+
+```java
+package holding;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
+public class AddingGroups {
+
+	public static void main(String[] args) {
+		Collection<Integer> collection = 
+				new ArrayList<Integer>(Arrays.asList(1,2,3,4,5));
+		Integer[] moreInts = {6,7,8,9,10};
+		collection.addAll(Arrays.asList(moreInts));
+		Collections.addAll(collection, 11,12,13,14,15);
+		Collections.addAll(collection, moreInts);
+		List<Integer> list = Arrays.asList(16,17,18,19,20);
+		list.set(1, 99);
+		//list.add(21); 运行时报错，底层数组无法调整大小
+		//java.lang.UnsupportedOperationException不支持此操作。
+	}
+}
+```
+
+API文档中对Arrays.asList()方法的说明：
+
+> public static <T> List<T> asList(T... a)
+>
+> 返回一个受**指定数组支持的固定大小的列表**（对返回列表的更改会“直接”写到数组）。此方法同Collection.toArray()一起，充当了基于数组的API与基于collection的API之间的桥梁。
+
+Collection的构造器可以接受另一个Collection，用它来将自身初始化，因此你可以使用Arrays.List()来为这个构造器产生输入。但是Collection.addAll()方法运行起来要快得多，而且构造一个不包含元素的Collection，然后调用Collections.addAll()这种方式很方便，因此它是首选方式。
+
+Collection.addAll()成员方法只能接受另一个Collection对象作为参数，因此它不如Arrays.asList()或Collections.addAll()灵活，这两个方法使用的都是可变参数列表。
+
+你也可以直接使用Arrays.asList()的输出，将其当做List，但是这种情况下，其底层表示的是数组，因此不能调整尺寸。如果试图用 add() 或 delete() 方法在这种列表中添加或删除元素，就有可能引发去改变数组尺寸的尝试，因此将在运行时获得“Unsupported Operation”(不支持的操作)错误。
+
+Arrays.asList()方法的限制是它对所产生的List的类型做出了最理想的假设，而并没有注意你对它会赋予什么样的类型。有时这就会引发问题：
+
+```java
+package holding;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+class Snow{}
+class Powder extends Snow{}
+class Light extends Powder{}
+class Heavy extends Powder{}
+class Crusty extends Snow{}
+class Slush extends Snow{}
+
+public class AsListInterence {
+
+	public static void main(String[] args) {
+		List<Snow> snow1 = Arrays.asList(new Crusty(),new Slush(),new Powder());
+		//不会编译
+		//编译器说：
+		//  found:java.util.List<Power>
+		//  required:java.util.List<Snow>
+		//书中使用的是1.5jdk，该代码，在jdk1.8中没问题
+		List<Snow> snow2 = Arrays.asList(new Light(),new Heavy());
+		
+		List<Snow> snow3 = new ArrayList<Snow>();
+		Collections.addAll(snow3, new Light(),new Heavy());
+		
+		List<Snow> snow4 = Arrays.<Snow>asList(new Light(),new Heavy());
+		
+	}
+}
+
+```
+
+上述代码在JDK1.8环境中没问题，以下为书中1.5解答：
+
+> 当试图创建snow2时。Arrays.asList()中只有Powder类型，因此它会创建List<Power>而不是List<Snow>，尽管Collections.addAll()工作的很好，因为它从第一个参数中了解到了目标类型是什么。
+>
+> 正如从创建snow4的操作中所看到的，可以在Arrays.asList()中间插入一条“线索”，以告诉编译器对于由Arrays.asList()产生的List类型，实际的目标类型应该是什么。这称为显示类型参数说明。
+
+## 容器的打印
+
+你必须使用Arrays.toString()来产生数组的可打印表示，但是打印容器无需任何帮助。下面是一个例子，这个例子中也介绍了一些基本类型的容器：
+
+```java
+package holding;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.TreeSet;
+
+public class PrintingContainers {
+
+	static Collection<String> fill(Collection<String> collection) {
+		collection.add("rat");
+		collection.add("cat");
+		collection.add("red");
+		collection.add("red");
+		return collection;
+	}
+	static Map<String, String> fill(Map<String,String> map) {
+		map.put("rat", "Fuzzy");
+		map.put("cat", "Rags");
+		map.put("dog", "Bosco");
+		map.put("dog", "Spot");
+		return map;
+	}
+	public static void main(String[] args) {
+		System.out.println(fill(new ArrayList<String>()));
+		System.out.println(fill(new LinkedList<String>()));
+		System.out.println(fill(new HashSet<String>()));
+		System.out.println(fill(new TreeSet<String>()));
+		System.out.println(fill(new LinkedHashSet<String>()));
+		System.out.println(fill(new HashMap<String,String>()));
+		System.out.println(fill(new TreeMap<String,String>()));
+		System.out.println(fill(new LinkedHashMap<String,String>()));
+	}
+}
+/**
+[rat, cat, red, red]
+[rat, cat, red, red]
+[red, rat, cat]
+[cat, rat, red]
+[rat, cat, red]
+{rat=Fuzzy, cat=Rags, dog=Spot}
+{cat=Rags, dog=Spot, rat=Fuzzy}
+{rat=Fuzzy, cat=Rags, dog=Spot}
+*/
+```
+
+这里展示了Java容器类库中的两种主要类型，它们的区别在于容器中每个“槽”保存的元素个数。Collection在每个槽中只能保存一个元素。此类容器包括：
+
+- List，它以特定的顺序保存一组元素；
+- Set，元素不能重复；
+- Queue，只允许在容易的一“端”插入对象，并从另外一“端”移除对象（对于本例来说，这只是另外一种观察序列的方式，因此并没有展示它）。
+- Map在每个槽内保存了两个对象，即键和与之相关联的值。
+
+查看输出会发现，默认的打印行为（使用容器提供的toString()方法）即可生成可读性很好的结果。Collection打印出来的内容用方括号括住，每个元素由逗号分隔。Map则用大括号括住，键与值由等号联系（键在等号左边，值在右边）。
+
+第一个fill()方法可以作用于所有类型的Collection，这些类型都实现了用来添加新元素的add()方法。
+
+ArrayList和LinkedList都是List类型，从输出可以看出，它们都按照被插入的顺序保存元素。两者的不同之处不仅在于执行某些类型的操作时的性能，而且LinkedList包含的操作也多余ArrayList。
+
+HashSet、TreeSet和LinkedHashSet都是Set类型，输出显示在Set中，每个相同的项只有保存一次，但是输出也显示了不同的Set实现存储元素的方式也不同。HashSet使用的是相当复杂的方式来存储元素的，**此刻你只需要知道这种技术是最快的获取元素方式**，因此，存储的顺序看起来并无意义。如果存储顺序最重要，那么可以使用TreeSet，它按照比较结果的升序保存对象；或者使用LinkedHashSet，它按照被添加的顺序保存对象。
+
+Map（也被称为关联数组）使得你可以用键来查找对象，就像一个简单的数据库。键所关联的对象称为键。使用Map可以将美国州名与其首府联系起来，如果想知道Ohio的首府，可以将Ohio作为键进行查找，几乎就像使用数组下标一样。正由于这种行为，**对于每一个键，Map只接受存储一次。**
+
+Map.put(key,value)方法将增加一个值（你想要增加的对象），并将它与某个键关联起来。Map.get(key)方法将产生与这个键相关联的值。上面的示例只添加了键-值对。
+
+注意，你不必指定（或考虑）Map的尺寸，因为它自己会自动地调整尺寸。Map还知道如何打印自己，它会显示相关关联的键和值。**键和值在Map中的保存顺序并不是它们的插入顺序，因为HashMap实现使用的是一种非常快的算法来控制顺序。**
+
+本例使用了三种基本风格的Map：HashMap、TreeMap和LinkedHashMap。与HashSet一样，**HashMap也提供了最快的查找技术，也没有按照任何明显的顺序来保存其元素**。**TreeMap按照比较结果的升序保存键，而LinkedHashMap则按照插入顺序保存键，同时还保留了HashMap的查询速度。**
+
+## List
+
