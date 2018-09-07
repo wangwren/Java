@@ -289,3 +289,177 @@ Map.put(key,value)方法将增加一个值（你想要增加的对象），并�
 
 ## List
 
+List承诺可以将元素维护在特定的序列中。List接口在Collection的基础上添加了大量的方法，使得可以在List的中间插入和移除元素。
+
+有两种类型的List：
+
+- 基本的ArrayList，它擅长随机访问元素，但是在List的中间插入和移除元素时较慢。
+- LinkedList，它通过代价较低的在List中间进行的插入和删除操作，提供了优化的顺序访问。Linked在随机访问方面相对比较慢，但是它的特性集较ArrayList更大。
+
+List允许在它被创建之后添加元素、移除元素，或者自我调整尺寸。这正是它的重要价值所在：**一种可修改的序列。**
+
+可以用 contains()方法来确定某个对象是否在列表中。如果想移除一个对象，则可以将这个对象的引用传递给 remove() 方法。同样，如果有一个对象的引用，则可以使用indexOf()来发现该对象在List中所处位置的索引编号。
+
+当确定一个元素是否属于某个List，发现某个元素的索引，以及从某个List中移除一个元素时，都会用到equals()方法（它是根类Object的一部分）。
+
+## 迭代器
+
+任何容器类，都必须有某种方式可以插入元素并将它们再次取回。毕竟，持有事物是容器最基本的工作。对于List，add()是插入元素的方法之一，而get()是取出元素的方法之一。
+
+如果从更高层的角度思考，会发现这里有一个缺点：要使用容器，必须对容器的确切类型编程。初看起来这没什么不好，但是考虑下面的情况：如果原本是对着List编码的，但是后来发现如果能够把相同的代码应用于Set，将会显得非常方便，此时应该怎么做？或者打算从头开始编写通用的代码，它们只是容器，不知道或者说不关心容器的类型，那么如何才能不重写代码就可以应用于不同类型的容器？
+
+**迭代器**（也是一种设计模式）的概念可以用于达成此目的。迭代器是一个**对象**，它的工作是遍历并选择序列中的对象，而客户端程序员不必知道或关心该序列底层的结构。此外，迭代器通常被称为**轻量级对象**：创建它的代价小。因此，经常可以见到对迭代器有些奇怪的限制：例如，Java的  Iterator只能**单向移动**，这个Iterator只能用来：
+
+1. 使用方法iterator()要求容器返回一个Iterator。Iterator将准备好返回序列的第一个元素。
+2. 使用 next() 获得序列中的下一个元素。
+3. 使用 hasNext() 检查序列中是否还有元素。
+4. 使用 remove() 将迭代器新近返回的元素删除。
+
+```java
+package holding;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+
+public class SimpleIteration {
+
+	public static void main(String[] args) {
+		List<Integer> list = 
+				new ArrayList<>(Arrays.asList(1,2,3,4,5,6,7,8,9,10));
+		Iterator<Integer> it = list.iterator();
+		while(it.hasNext()) {
+			Integer i = it.next();
+			System.out.print(i + " ");
+		}
+		System.out.println();
+		for(Integer i : list) {
+			System.out.print(i + " ");
+		}
+		System.out.println();
+		
+		it = list.iterator();
+		for(int i = 0;i < 6;i++) {
+			it.next();
+			it.remove();
+		}
+		System.out.println(list);
+	}
+}
+/**
+1 2 3 4 5 6 7 8 9 10 
+1 2 3 4 5 6 7 8 9 10 
+[7, 8, 9, 10]
+*/
+```
+
+有了Iterator就不必为容器中元素的数量操心了，那是由hasNext()和next()关心的事情。
+
+如果只是向前遍历List，并不打算修改List对象本身，那么可以看到foreach语法会显得更加简洁。
+
+Iterator还可以移除由next()产生的最后一个元素，这意味着在调用remove()之前必须先调用next()。
+
+**接受对象容器并传递它，从而在每个对象上都执行操作。**
+
+现在考虑创建一个display()方法，它不必知晓容器的确切类型：
+
+```java
+package holding;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.TreeSet;
+
+public class CrossContainerIteration {
+
+	public static void display(Iterator<Integer> it) {
+		while(it.hasNext()) {
+			Integer i = it.next();
+			System.out.print(i + " ");
+		}
+		System.out.println();
+	}
+	public static void main(String[] args) {
+		ArrayList<Integer> aList = 
+				new ArrayList<>(Arrays.asList(1,2,3,4,5,6,7,8,9,10));
+		LinkedList<Integer> linkedList = 
+				new LinkedList<>(Arrays.asList(1,2,3,4,5,6,7,8,9,10));
+		HashSet<Integer> hashSet = 
+				new HashSet<Integer>(Arrays.asList(1,2,3,4,5,6,7,8,9,10));
+		TreeSet<Integer> treeSet = 
+				new TreeSet<>(Arrays.asList(1,2,3,4,5,6,7,8,9,10));
+		display(aList.iterator());
+		display(linkedList.iterator());
+		display(hashSet.iterator());
+		display(treeSet.iterator());
+	}
+}
+/**
+1 2 3 4 5 6 7 8 9 10 
+1 2 3 4 5 6 7 8 9 10 
+1 2 3 4 5 6 7 8 9 10 
+1 2 3 4 5 6 7 8 9 10 
+*/
+```
+
+注意，display()方法不包含任何有关它所遍历的序列的类型信息，而这也展示了Iterator的真正威力：能够将遍历序列的操作与序列底层的结构分离。正由于此：迭代器统一了对容器的访问方式。
+
+### ListIterator
+
+ListIterator是一个更加强大的Iterator的子类型，它只能用于各种List类的访问。尽管Iterator只能向前移动，但是ListIterator可以双向移动。它还可以产生相对于迭代器在列表中指向的当前位置的前一个和后一个元素的索引，并且可以使用set()方法替换它访问过的最后一个元素。
+
+可以通过调用listIterator()方法产生一个指向List开始处的ListIterator，并且还可以通过调用listIterator(n)方法创建一个一开始就指向列表索引为 n 的元素处的 ListIterator。
+
+```java
+package holding;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.ListIterator;
+
+public class ListIteration {
+
+	public static void main(String[] args) {
+		List<String> list = 
+				new ArrayList<String>(Arrays.asList("A","B","C","D","E","F","G"));
+		ListIterator<String> lit = list.listIterator();
+		while(lit.hasNext()) {//以正向遍历列表时，如果列表迭代器有多个元素，则返回 true
+			//next()返回下一个元素
+			//nextIndex()返回对 next 的后续调用所返回元素的索引。
+			//previousIndex()返回对 previous 的后续调用所返回元素的索引。
+			System.out.print(lit.next() + "," + lit.nextIndex() +
+					"," + lit.previousIndex() + ";");
+		}
+		System.out.println();
+		
+		while(lit.hasPrevious()) {//如果以逆向遍历列表，列表迭代器有多个元素，则返回 true。
+			//previous()返回列表中的前一个元素。
+			System.out.print(lit.previous() + "," +lit.previousIndex() + ";");//倒着输出
+		}
+		System.out.println();
+		System.out.println(list);
+		
+		lit = list.listIterator(3);
+		while(lit.hasNext()) {
+			lit.next();
+			lit.set("Z");	//替换从 3 位置开始，向前的所有元素
+		}
+		System.out.println(list);
+	}
+}
+/**
+A,1,0;B,2,1;C,3,2;D,4,3;E,5,4;F,6,5;G,7,6;
+G,5;F,4;E,3;D,2;C,1;B,0;A,-1;
+[A, B, C, D, E, F, G]
+[A, B, C, Z, Z, Z, Z]
+*/
+```
+
+## LinkedList
+
