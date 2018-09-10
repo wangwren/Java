@@ -463,3 +463,325 @@ G,5;F,4;E,3;D,2;C,1;B,0;A,-1;
 
 ## LinkedList
 
+LinkedList也像ArrayList一样实现了基本的List接口，**但是它执行某些操作（在List的中间插入和移除）时比ArrayList更高效，但在随机访问操作方面却要逊色一些。**
+
+**LinkedList还添加了可以使用其用作栈、队列或双端队列的方法。**
+
+这些方法中有些彼此之间只是名称有些差异，或者只存在些许差异，以使得这些名字在特定用法的上下文环境中更加适用（特别是在Queue中）。
+
+例如，getFirst() 和 element()完全一样，它们都返回列表的头（第一个元素），而并不移除它，如果 List 为空，则抛出NoSuchElementException。peek()方法与这两个方式只是稍有差异，它在列表为空时返回 null。
+
+addFirst()与add()和addLast()相同，它们都将某个元素插入到列表的尾部。
+
+removeLast()移除并返回列表的最后一个元素。
+
+## Stack
+
+“栈”通常是指“后进先出”（LIFO）的容器。有时栈也被称为叠加栈。因为最后“压入”栈的元素，第一个“弹出”栈。经常用来类比栈的事物是装有弹簧的储放器中的自助餐托盘，最后装入的托盘总是最先拿出使用。
+
+LinkedList具有能够直接实现栈的所有功能的方法，因此可以直接将LinkedList作为栈使用，不过，有时一个真正的“栈”更能把使其讲清楚：
+
+```java
+package holding;
+
+import java.util.LinkedList;
+
+public class Stack<T> {
+	private LinkedList<T> storage = new LinkedList<T>();
+	/**
+	 * 栈顶添加元素
+	 * @param t
+	 */
+	public void push(T t) {
+		storage.addFirst(t);
+	}
+	/**
+	 * 获取栈顶元素
+	 * @return
+	 */
+	public T peek() {
+		return storage.getFirst();
+	}
+	/**
+	 * 移除栈顶元素，并返回被移除的元素
+	 * @return
+	 */
+	public T pop() {
+		return storage.removeFirst();
+	}
+	public boolean empty() {
+		//如果栈为空，则返回true
+		return storage.isEmpty();
+	}
+	public String toString() {
+		return storage.toString();
+	}
+}
+```
+
+这里通过使用泛型，引入了在栈的类定义中最简单的可行示例。类名之后的\<T>告诉编译器这将是一个参数化类型，而其中的类型参数，即在类被使用时将会被实际类型替换的参数，就是T。大体上，这个类是在声明“我们在定义一个可以持有 T 类型对象的 Stack”。Stack是用LinkedList实现的，而LinkedList也被告知它将持有T类型对象。push()接受的是T类型的对象，而 peek() 和 pop() 将返回T类型的对象。peek()方法将提供栈顶元素，但是并不将其从栈顶移除，而pop()将移除并返回栈顶元素。
+
+如果只需要栈的行为，这里使用继承就不合适了，因为这样会产生具有LinkedList的其他所有方法的类。下面演示了这个新的Stack类：
+
+```java
+package holding;
+
+public class StackTest {
+	public static void main(String[] args) {
+		Stack<String> stack =  new Stack<String>();
+		for(String s : "My dog has fleas".split(" ")) {
+			stack.push(s);
+		}
+		//如果栈不为空
+		while(!stack.empty()) {
+			System.out.print(stack.pop() + " ");
+		}
+	}
+}
+/**
+fleas has dog My 
+*/
+```
+
+java.util.Stack 与 自己编写的Stack具有相同的接口，但是在java.util中没有任何公共的Stack接口，这可能是因为在Java1.0中的设计欠佳，最初的java.util.Stack类占用了这个名字。尽管已经有了java.util.Stack，但是LinkedList可以产生更好的Stack，因此，上述自己写的Stack所采用的的方式更是可取的。
+
+> 现在，任何对Stack的引用都将选择net.mindview.util版本，而在选择java.util.Stack时，必须使用全限定名称。
+
+## Set
+
+Set不保证重复的元素。如果试图将相同对象的多个实例添加到Set中，那么它就会组织这种重复现象。Set中最常被使用的是测试归属性，可以很容易地询问某个对象是否在某个Set中。正因如此，查找就成为了Set中最重要的操作，因此通常都会选择一个HashSet的实现，它专门对快速查找进行了优化。
+
+Set具有与Collection完全一样的接口，因此没有任何额外的功能，不像前面有两个不同的List。实际上Set就是Collection，只是行为不同。（这是继承与多态思想的典型应用：表现不同的行为。）Set是基于对象的值来确定归属性的，而更加复杂的问题在17章还有。
+
+下面是使用存放Integer对象的HashSet的实例：
+
+```java
+package holding;
+
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
+
+public class SetOfInteger {
+
+	public static void main(String[] args) {
+		Random rand = new Random(47);
+		Set<Integer> inset = new HashSet<Integer>(); 
+		for(int i = 0;i < 10000;i++) {
+			inset.add(rand.nextInt(30));
+		}
+		System.out.println(inset);
+	}
+}
+/**
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+*/
+```
+
+在 0 到 29之间的10000个随机数被添加到了Set中，因此可以想象，每一个数都重复了许多次。但是，每一个数只有一个实例出现在结果中。
+
+还可以注意到，输出的顺序没有任何规律可循，这是因为出于速度原因的考虑，HashSet使用了散列。HashSet所维护的顺序与TreeSet或LinkedHashSet都不同，因为它们的实现具有不同的元素存储方式。TreeSet将元素存储在红-黑树数据结构中，而HashSet使用的是散列函数。LinkedHashSet因为查询速度的原因也使用了散列，但是看起来它使用了链表来维护元素的插入顺序。
+
+对于上面程序中的输出结果，我运行了很多次，都是有序的，于是Google一下，找到了答案，以下：
+
+> 作者：RednaxelaFX
+>
+> 链接：https://www.zhihu.com/question/28414001/answer/40733996
+>
+> 来源：知乎
+>
+> 著作权归作者所有，转载请联系作者获得授权。
+>
+> “不保证有序”和“保证无序”不等价，HashSet的iterator是前者而不是后者，所以在一次运行中看到有序的结果也是正常的，但不能依赖这个有序行为。
+>
+> 况且HashSet并不关心key的“排序”，就算其iterator“有序”通常也是说“按元素插入顺序”（LinkedHashSet就支持插入顺序遍历）。题主在此看到的所谓“有序”纯粹是个巧合。然后我复制粘贴了题主的代码运行了一次：
+>
+>
+>
+> ```java
+> $ java SetOfInteger
+> 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 17 16 19 18 21 20 23 22 25 24 27 26 29 28 
+> $ java -version
+> java version "1.7.0-internal-zing_99.99.99.99.dev"
+> Zing Runtime Environment for Java Applications (build 1.7.0-internal-zing_99.99.99.99.dev-b65)
+> Zing 64-Bit Tiered VM (build 1.7.0-zing_99.99.99.99.dev-b870-product-azlinuxM-X86_64, mixed mode)
+> ```
+>
+> （Zing JDK7的开发版）
+> 就不是有序的嘛。同样在Oracle JDK7u51上也是如此：
+>
+> ```java
+> $ java SetOfInteger
+> 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 17 16 19 18 21 20 23 22 25 24 27 26 29 28 
+> $ java -version
+> java version "1.7.0_51"
+> Java(TM) SE Runtime Environment (build 1.7.0_51-b13)
+> Java HotSpot(TM) 64-Bit Server VM (build 24.51-b03, mixed mode)
+> ```
+>
+> 换到Zing JDK8：
+>
+> ```java
+> $ java SetOfInteger
+> 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 
+> $ java -version
+> java version "1.8.0-internal-zing_99.99.99.99.dev"
+> Zing Runtime Environment for Java Applications (build 1.8.0-internal-zing_99.99.99.99.dev-b65)
+> Zing 64-Bit Tiered VM (build 1.8.0-zing_99.99.99.99.dev-b870-product-azlinuxM-X86_64, mixed mode)
+> ```
+>
+> 再换到Oracle JDK8u25：
+>
+> ```java
+> $ java SetOfInteger
+> 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 
+> $ java -version
+> java version "1.8.0_25"
+> Java(TM) SE Runtime Environment (build 1.8.0_25-b17)
+> Java HotSpot(TM) 64-Bit Server VM (build 25.25-b02, mixed mode)
+> ```
+>
+> 就看到了题主说的有序行为。
+>
+> JDK8的HashSet实现变了，导致元素插入的位置发生了变化；iterator自身实现的顺序倒没变，还是按照内部插入的位置顺序来遍历，于是题主就看到了JDK7和JDK8的结果不一样。具体来说，是JDK7与JDK8的java.util.HashMap的hash算法以及HashMap的数据布局发生了变化。
+>
+> 题主插入HashSet的是Integer，其hashCode()实现就返回int值本身。所以在对象hashCode这一步引入了巧合的“按大小排序”。
+> 然后HashMap.hash(Object)获取了对象的hashCode()之后会尝试进一步混淆。
+> JDK8版java.util.HashMap内的hash算法比JDK7版的混淆程度低；在[0, 2^32-1]范围内经过HashMap.hash()之后还是得到自己。题主的例子正好落入这个范围内。外加load factor正好在此例中让这个HashMap没有hash冲突，这就导致例中元素正好按大小顺序插入在HashMap的开放式哈希表里。
+> 根据它的实现特征，把题主的例子稍微修改一下的话：
+>
+> ```text
+> $ cat SetOfInteger.java 
+> import java.util.*;
+> 
+> public class SetOfInteger {
+>     public static void main(String[] args){
+>         Random rand=new Random(47);
+>         Set<Integer> intset=new HashSet<Integer>();
+>         for (int i=0;i<10000;i++){
+>             intset.add(rand.nextInt(30) + (1 << 16));
+>         }
+>         Iterator<Integer> iterator=intset.iterator();
+>         while (iterator.hasNext()){
+>             System.out.print((iterator.next() - (1 << 16)) +" ");
+>         }
+>     }
+> }
+> $ java SetOfInteger
+> 1 0 3 2 5 4 7 6 9 8 11 10 13 12 15 14 17 16 19 18 21 20 23 22 25 24 27 26 29 28 
+> $ java -version
+> java version "1.8.0_25"
+> Java(TM) SE Runtime Environment (build 1.8.0_25-b17)
+> Java HotSpot(TM) 64-Bit Server VM (build 25.25-b02, mixed mode)
+> ```
+>
+> 就可以看到顺序不一样了。修改的内容就是把插入的数字先加上2的16次方，然后拿出来之后再减去2的16次方
+
+而我本身就是用的jdk8版本，jdk8对HashMap的实现做了改变，**认真读上述引用。**
+
+如果想对结果排序，一种方式就是用TreeSet来代替HashSet：
+
+```java
+package holding;
+
+import java.util.Random;
+import java.util.Set;
+import java.util.TreeSet;
+
+public class SortedSetOfInteger {
+	public static void main(String[] args) {
+		Random rand = new Random(47);
+		Set<Integer> inset = new TreeSet<Integer>(); 
+		for(int i = 0;i < 10000;i++) {
+			inset.add(rand.nextInt(30));
+		}
+		System.out.println(inset);
+	}
+}
+/**
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+*/
+```
+
+你将会执行的最常见的操作之一，就是使用contains()测试Set的归属性。
+
+```java
+package holding;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+public class SetOperations {
+	public static void main(String[] args) {
+		Set<String> set1 = new HashSet<String>();
+		Collections.addAll(set1, "A B C D E F G H I J K L".split(" "));
+		set1.add("M");
+		System.out.println("H: " + set1.contains("H"));
+		System.out.println("N: " + set1.contains("N"));
+		Set<String> set2 = new HashSet<String>();
+		Collections.addAll(set2, "H I J K L".split(" "));
+		System.out.println("set2 in set1: " + set1.contains(set2));
+		set1.remove("H");
+		System.out.println("set1: " + set1);
+		System.out.println("set2 in set1: " + set1.contains(set2));
+		set1.remove(set2);
+		System.out.println("set2 removed from set1: " + set1);
+		Collections.addAll(set1, "X Y Z".split(" "));
+		System.out.println("'X Y Z' added to set1: " + set1);
+	}
+}
+/**
+H: true
+N: false
+set2 in set1: false
+set1: [A, B, C, D, E, F, G, I, J, K, L, M]
+set2 in set1: false
+set2 removed from set1: [A, B, C, D, E, F, G, I, J, K, L, M]
+'X Y Z' added to set1: [A, B, C, D, E, F, G, I, J, K, L, M, X, Y, Z]
+*/
+```
+
+这些方法名都是自解释型的，而有几个方法可以在JDK文档中找到。
+
+能够产生每个元素都唯一的列表是相当有用的功能。
+
+如果想要按照字母序排序，那么可以向TreeSet的构造器传入String.CASE_INSENTIVE_ORDER比较器（比较器就是建立排序顺序的对象）。
+
+## Map
+
+将对象映射到其他对象的能力是一种解决编程问题的杀手锏。例如，考虑一个程序，它将用来检查Java的Random类的随机性。理想状态下，Random可以将产生理想的数字分布，但要想测试它，则需要生成大量的随机数，并对落入各种不同范围的数字进行计数。Map可以很容易地解决该问题。在本例中，键是由Random产生的数字，而值是该数字出现的次数：
+
+```java
+package holding;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+
+public class Statistics {
+
+	public static void main(String[] args) {
+		Random rand = new Random(47);
+		Map<Integer,Integer> map = new HashMap<Integer,Integer>();
+		for(int i = 0;i < 10000;i++) {
+			int key = rand.nextInt(20);
+			Integer value = map.get(key);
+			//如果value不为空，则value+1之后存入map中。
+			//不能再定义一个变量来记录，这样记录的是整个，只要有就+1了
+			//应该是针对当前的key值，如果有，就+1，之后存入
+			map.put(key, value == null ? 1 : value + 1);
+		}
+		System.out.println(map);
+	}
+}
+/**
+{0=481, 1=502, 2=489, 3=508, 4=481, 5=503, 6=519, 7=471, 8=468, 9=549, 10=513, 11=531, 12=521, 13=506, 14=477, 15=497, 16=533, 17=509, 18=478, 19=464}
+*/
+```
+
+在main()中，自动包装机制将随机生成的 int 转换为HashMap可以使用的Integer引用（不能使用基本类型的容器）。如果键不在容器中，get()方法将返回null（这表示该数字第一次被找到）。否则，get()方法将产生与该键相关联的Integer值，然后这个值被递增。
+
+可以使用containsKey()和containsValue()来测试一个Map，以便查看它是否包含某个键或某个值。
+
+Map可以返回它的键的Set，它的值的Collection，或者它的键值对的Set。keySet()方法产生了由在map中的所有键组成的Set，它在foreach语句中被用来迭代遍历Map。
