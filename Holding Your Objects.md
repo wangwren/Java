@@ -789,3 +789,256 @@ Map可以返回它的键的Set，它的值的Collection，或者它的键值对�
 队列是一个典型的**先进先出**(FIFO)的容器。即从容器的一端放入事物，从另一端取出，并且事物放入容器的顺序与取出的顺序是相同的。队列常被当作一种可靠的将对象从程序的某个区域传输到另一个区域的途径。队列在并发编程中特别重要，因为它们可以安全地将对象从一个任务传输给另一个任务。
 
 LinkedList提供了方法以支持队列的行为，并且它实现了Queue接口，因此LinkedList可以用作Queue的一种实现。通过将LinkedList向上转型为Queue，下面的示例使用了在Queue接口中与Queue相关的方法：
+
+```java
+package holding;
+
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Random;
+
+public class QueueDemo {
+
+	public static void printQ(Queue queue) {
+		while(queue.peek() != null) {
+			System.out.print(queue.remove() + " ");
+		}
+		System.out.println();
+	}
+	
+	public static void main(String[] args) {
+		Queue<Integer> queue = new LinkedList<Integer>();
+		Random rand = new Random();
+		for(int i = 0;i < 10;i++) {
+			queue.offer(rand.nextInt((i + 10)));
+		}
+		System.out.println(queue);
+		Queue<Character> qc = new LinkedList<Character>();
+		for(char c : "Brontosaurus".toCharArray()) {
+			qc.offer(c);
+		}
+		System.out.println(qc);
+	}
+}
+/**
+[1, 1, 11, 2, 4, 3, 7, 2, 14, 8]
+[B, r, o, n, t, o, s, a, u, r, u, s]
+*/
+```
+
+offer() 方法是与Queue相关的方法之一，它在允许的情况下，将一个元素插入到队尾，或者返回false。
+
+peek()和element()都将在不移除的情况下返回队头，但是peek()方法在队列为空时返回null，而element()会抛出 NoSuchElementException 异常。
+
+poll()和remove()方法将移除并返回队头，但是poll()在队列为空时返回null，而remove()会抛出NoSuchElementException异常。
+
+自动包装机制会自动地将nextInt()方法的int结果转换为queue所需的Integer对象，将 char c 转换为 qc 所需的 Character 对象。Queue接口窄化了对LinkedLisrt的方法访问权限，以使得只有恰当的方法才可以使用，因此，能够访问的LinkedList的方法会变少。
+
+注意，与Queue相关的方法提供了完整而独立的功能。即，对于Queue所继承的Collection，在不需要使用它的任何方法的情况下，就可以拥有一个可用的Queue。
+
+### PriorityQueue
+
+先进先出描述了最典型的队列规则。队列规则是指在给定一组队列中的元素的情况下，确定下一个弹出队列的元素的规则。先进先出声明的是下一个元素应该是等待时间最长的元素。
+
+**优先级队列**声明下一个弹出元素是最需要的元素（具有最高的优先级）。例如，在飞机场，当飞机临近起飞时，这架飞机的乘客可以在办理登机手续时排到队头。如果构建了一个消息系统，某些消息比其他消息更重要，因而应该更快地得到处理，那么它们何时得到处理就与它们何时到达无关。PriorityQueue添加到Java SE5中，是为了提供这种行为的一种自动实现。
+
+当在PriorityQueue上调用offer()方法来插入一个对象时，这个对象会在队列中被排序。默认的排序将使用对象在队列中的自然顺序，但是可以通过提供自己的Comparator来修改这个顺序。PriorityQueue可以确保当你调用peek()、poll()和remove()方法时，获取的元素将是队列中优先级最高的元素。
+
+让PriorityQueue与Integer、String和Character这样的内置类型一起工作易如反掌。在下面的示例中，第一个值集与前一个示例中的随机值相同，因此可以看到它们从PriorityQueue中弹出的顺序与前一个示例不同：
+
+```java
+package holding;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.PriorityQueue;
+import java.util.Random;
+import java.util.Set;
+
+public class PriorityQueueDemo {
+	public static void main(String[] args) {
+		PriorityQueue<Integer> priorityQueue = new PriorityQueue<Integer>();
+		Random rand = new Random(47);
+		for(int i = 0;i < 10;i++) {
+			priorityQueue.offer(rand.nextInt(i + 10));
+		}
+		QueueDemo.printQ(priorityQueue);
+		
+		List<Integer> ints = 
+				Arrays.asList(25,22,20,18,14,9,3,1,1,2,3,9,14,18,21,23,25);
+		priorityQueue = new PriorityQueue<Integer>(ints);
+		QueueDemo.printQ(priorityQueue);
+		
+		priorityQueue = new PriorityQueue<>(ints.size(), Collections.reverseOrder());
+		priorityQueue.addAll(ints);
+		QueueDemo.printQ(priorityQueue);
+		
+		String fact = "EDUCATION SHOULD ESCHEW OBFUSCATION";
+		List<String> strings = Arrays.asList(fact.split(""));
+		PriorityQueue<String> stringPQ = new PriorityQueue<String>(strings);
+		QueueDemo.printQ(stringPQ);
+		
+		//Collections.reverseOrder() API解释：
+		//返回一个比较器，它强行逆转实现了 Comparable 接口的对象 collection 的自然顺序。
+		//（自然顺序是通过对象自身的 compareTo 方法强行排序的。）
+		//此方法允许使用单个语句，以逆自然顺序对实现了 Comparable 接口的对象 collection（或数组）进行排序（或维护）。
+		//例如，假设 a 是一个字符串数组。那么：
+        //Arrays.sort(a, Collections.reverseOrder());
+		//将按照逆字典（字母）顺序对数组进行排序。
+		//返回的比较器是可序列化的。 
+		stringPQ = new PriorityQueue<String>(strings.size(),Collections.reverseOrder());
+		stringPQ.addAll(strings);
+		QueueDemo.printQ(stringPQ);
+		
+		Set<Character> charSet = new HashSet<Character>();
+		for(char c : fact.toCharArray()) {
+			charSet.add(c);
+		}
+		PriorityQueue<Character> characterPQ = new PriorityQueue<Character>(charSet);
+		QueueDemo.printQ(characterPQ);
+	}
+}
+/**
+0 1 1 1 1 1 3 5 8 14 
+1 1 2 3 3 9 9 14 14 18 18 20 21 22 23 25 25 
+25 25 23 22 21 20 18 18 14 14 9 9 3 3 2 1 1 
+      A A B C C C D D E E E F H H I I L N N O O O O S S S T T U U U W 
+W U U U T T S S S O O O O N N L I I H H F E E E D D C C C B A A       
+  A B C D E F H I L N O S T U W
+*/
+```
+
+可以看到，重复是允许的，**最小的值拥有最高的优先级**（如果是String，空格也可以算作值，并且比字母的优先级高）。为了展示你可以使用怎样的方法通过提供自己的Comparator对象来改变排序，第三个对PriorityQueue\<Integer>的构造器调用，和第二个对PriorityQueue\<String>的调用使用了由Collection.reverseOrder() （新添加到Java SE5中的）产生的反序的Comparator。（代码中也有解释该方法）
+
+最后一部分添加了一个HashSet来消除重复的Character，这么做只是为了增添点乐趣。
+
+Integer、String和Character可以与PriorityQueue一起工作，因为这些类已经内建了自然排序。如果你想在PriorityQueue中使用自己的类，就必须包括额外的功能以产生自然排序，或者必须提供自己的Comparator。
+
+## Collection和Iterator
+
+Collection是描述所有序列容器的共性的根接口，它可能会被认为是一个“附属接口”，即因为要表示其他若干个接口的共性而出现的接口。另外，java.util.AbstractCollection类提供了Collection的默认实现，使得你可以创建AbstractCollection的子类型，而其中没有不必要的代码重复。
+
+使用接口描述的一个理由是它可以使我们能够创建更通用的代码。通过针对接口而非具体实现来编码，我们的代码可以应用于更多的对象类型。因此，**如果我编写的方法将接受一个Collection，那么该方法就可以应用于任何实现了Collection的类--这也就使得一个新类可以选择去实现Collection接口，以便我的方法可以使用它。**
+
+但是，有一点很有趣，就是我们注意到标准C++类库中并没有其容器的任何公共基类--容器之间的所有共性都是通过迭代器达成的。在Java中，遵循C++的方式看起来似乎很明智，即用迭代器而不是Collection来表示容器之间的共性。但是，这两种方法绑定到一起，因为实现Collection就意味着需要提供iterator()方法。
+
+```java
+package holding;
+
+import java.util.AbstractCollection;
+import java.util.Collection;
+import java.util.Iterator;
+
+public class CollectionSequence extends AbstractCollection<Integer> {
+
+	private Integer[] pets = {1,2,3,4,5,6,7,8};
+	
+	@Override
+	public Iterator<Integer> iterator() {
+		
+		return new Iterator<Integer>() {
+			private int index = 0;
+			@Override
+			public boolean hasNext() {
+				
+				return index < pets.length;
+			}
+
+			@Override
+			public Integer next() {
+
+				return pets[index++];
+			}
+
+			@Override
+			public void remove() {
+				//Not implemented
+				throw new UnsupportedOperationException();
+			}
+		};
+	}
+
+	@Override
+	public int size() {
+		
+		return pets.length;
+	}
+	
+	public static void main(String[] args) {
+		CollectionSequence c = new CollectionSequence();
+		InterfaceVsIterator.display(c);
+		InterfaceVsIterator.display(c.iterator());
+	}
+}
+
+class InterfaceVsIterator{
+	public static void display(Iterator<Integer> it) {
+		while(it.hasNext()) {
+			Integer i = it.next();
+			System.out.print(i + " ");
+		}
+		System.out.println();
+	}
+	public static void display(Collection<Integer> pets) {
+		for(Integer i : pets) {
+			System.out.print(i + " ");
+		}
+		System.out.println();
+	}
+}
+/**
+1 2 3 4 5 6 7 8 
+1 2 3 4 5 6 7 8 
+*/
+```
+
+remove()方法是一个“可选操作”。这里不必实现它，如果你调用它，它会抛出异常。
+
+从本例中，你可以看到，如果你实现Collection，就必须实现iterator()，并且只拿实现 iterator() 与继承AbstractCollection相比，花费的代价只有略微减少。但是，如果你的类已经继承了其他类，那么你就不能再继承AbstractCollection了。在这种情况下，要实现Collection，就必须实现该接口中的所有方法。此时，继承并提供创建迭代器的能力就会显得容易得多了。
+
+```java
+package holding;
+
+import java.util.Iterator;
+
+class PetSequence{
+	protected Integer[] pets = {1,2,3,4,5,6,7,8};
+}
+
+public class NonCollectionSequence extends PetSequence {
+	public Iterator<Integer> iterator(){
+		return new Iterator<Integer>() {
+			private int index = 0;
+			@Override
+			public boolean hasNext() {
+				return index < pets.length;
+			}
+
+			@Override
+			public Integer next() {
+
+				return pets[index++];
+			}
+
+			@Override
+			public void remove() {
+				throw new UnsupportedOperationException();
+			}
+		};
+	}
+	public static void main(String[] args) {
+		NonCollectionSequence nc = new NonCollectionSequence();
+		InterfaceVsIterator.display(nc.iterator());
+	}
+}
+/**
+1 2 3 4 5 6 7 8 
+*/
+```
+
+生成Iterator是将队列与消费队列的方法连接在一起耦合度最小的方式，并且与实现Collection相比，它在序列类上所施加的约束也少得多。
+
+## Foreach与迭代器
+
