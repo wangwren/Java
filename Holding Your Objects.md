@@ -785,3 +785,7 @@ public class Statistics {
 可以使用containsKey()和containsValue()来测试一个Map，以便查看它是否包含某个键或某个值。
 
 Map可以返回它的键的Set，它的值的Collection，或者它的键值对的Set。keySet()方法产生了由在map中的所有键组成的Set，它在foreach语句中被用来迭代遍历Map。
+## Queue
+队列是一个典型的**先进先出**(FIFO)的容器。即从容器的一端放入事物，从另一端取出，并且事物放入容器的顺序与取出的顺序是相同的。队列常被当作一种可靠的将对象从程序的某个区域传输到另一个区域的途径。队列在并发编程中特别重要，因为它们可以安全地将对象从一个任务传输给另一个任务。
+
+LinkedList提供了方法以支持队列的行为，并且它实现了Queue接口，因此LinkedList可以用作Queue的一种实现。通过将LinkedList向上转型为Queue，下面的示例使用了在Queue接口中与Queue相关的方法：
