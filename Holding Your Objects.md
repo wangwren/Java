@@ -1257,4 +1257,5 @@ Java提供了大量持有对象的方式：
 - 带有空心箭头的点线表示一个特定的类实现了一个接口
 - 实心箭头表示某个类可以生成箭头所指向类的对象
 
-例如，任意的Collection可以生成Iterator，而List可以生成ListIterator（也能生成普通的Iterator，因此List继承自Collection）
+例如，任意的Collection可以生成Iterator，而List可以生成ListIterator（也能生成普通的Iterator，因此List继承自Collection）  
+[练习题](https://github.com/wangwren/Thinking-in-Java-notes/tree/master/Chapter11Exercise/src/holding)
