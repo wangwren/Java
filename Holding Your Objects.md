@@ -1042,3 +1042,219 @@ public class NonCollectionSequence extends PetSequence {
 
 ## Foreach与迭代器
 
+到目前为止，foreach语法主要用于数组，但是它也可以应用于任何Collection对象。
+
+```java
+package holding;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
+
+public class ForEachCollections {
+
+	public static void main(String[] args) {
+			Collection<String> cs = new LinkedList<String>();
+			Collections.addAll(cs, "Take the long way home".split(" "));
+			for(String s : cs) {
+				System.out.print("'" + s + "' ");
+			}
+	}
+}
+/**
+'Take' 'the' 'long' 'way' 'home' 
+*/
+```
+
+由于 cs 是一个Collection，所以这段代码展示了能够与foreach一起工作是所有Collection对象的特性。
+
+之所以能够工作，是**因为Java SE5引入了新的被称为Iterable的接口，该接口包含了一个能够产生Iterator的iterator()方法，并且Iterable接口被foreach用来在序列中移动**。因此如果你创建了任何实现Iterable的类。都可以将它用于foreach语句中：
+
+```java
+package holding;
+
+import java.util.Iterator;
+
+public class IterableClass implements Iterable<String>{
+
+	protected String[] words = ("And that is how we know the Earth to be banana-shaped.").split(" ");
+	
+	@Override
+	public Iterator<String> iterator() {
+		return new Iterator<String>() {
+			private int index = 0;
+			@Override
+			public boolean hasNext() {
+				return index < words.length;
+			}
+
+			@Override
+			public String next() {
+				return words[index++];
+			}
+
+			@Override
+			public void remove() {
+				throw new UnsupportedOperationException();
+			}
+		};
+	}
+	
+	public static void main(String[] args) {
+		for(String s : new IterableClass()) {
+			System.out.print(s + " ");
+		}
+	}
+}
+/**
+And that is how we know the Earth to be banana-shaped. 
+*/
+```
+
+iterator()方法返回的是实现了Iterator\<String>的匿名内部类的实例，该匿名内部类可以遍历数组中的所有单词。在main()中，可以看到 IterableClass 确实可以用于foreach语句中。
+
+在Java SE5中，大量的类都是 Iterable 类型，主要包括所有的Collection类（但是不包括各种Map）。例如，下面的代码可以显示所有的操作系统的环境变量：
+
+```java
+package holding;
+
+import java.util.Map;
+
+public class EnvironmentVariables {
+
+	public static void main(String[] args) {
+		for(Map.Entry entry: System.getenv().entrySet()) {
+			System.out.println(entry.getKey() + ": " + entry.getValue());
+		}
+	}
+}
+```
+
+System.getenv()返回一个Map，entrySet()产生一个由Map.Entry的元素构成的Set，并且这个Set是一个Iterable，因此它可以用于foreach循环。
+
+foreach语句可以用于数组或其他任何Iterable，但是这并不意味着数组肯定也是一个Iterable，而任何自动包装也不会自动发生。
+
+```java
+package holding;
+
+import java.util.Arrays;
+
+public class ArrayIsNotIterable {
+
+	static <T> void test(Iterable<T> ib) {
+		for(T t : ib) {
+			System.out.print(t + " ");
+		}
+	}
+	public static void main(String[] args) {
+		test(Arrays.asList(1,2,3));
+		String[] strings = {"A","B","C"};
+		//An array works in foreach,but it's not Iterable
+		//!test(strings);
+		//You must explicitly convert it to an Iterable
+		test(Arrays.asList(strings));
+	}
+}
+/**
+1 2 3 A B C 
+*/
+```
+
+尝试把数组当作一个Iterable参数传递会导致失败。这说明不存在任何从数组到Iterable的自动转换，你必须手工执行这种转换。
+
+### 适配器方法惯用法
+
+如果现有一个Iterable类，你想要添加一种或多种在foreach语句中使用这个类的方法，应该怎么做？例如，假设你希望可以选择以前的方向或是向后的方向迭代一个单词列表。如果直接继承这个类，并覆盖iterator()方法，你只能替换现有的方法，而不能实现选择。
+
+一种解决方案是所谓适配器方法的惯用法。“适配器”部分来自于设计模式，因为你必须提供特定接口以满足foreach语句。当你有一个接口并需要另一个接口时，编写适配器就可以解决问题。这里，我希望在默认的前向迭代器的基础上，添加产生反向迭代器的能力，因此不能使用覆盖，**而是添加了一个能够产生Iterable对象的方法**，该对象可以用于foreach语句。正如你所见，这使得我们可以提供多种使用foreach的方式：
+
+```java
+package holding;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+
+class ReversibleArrayList<T> extends ArrayList<T>{
+	public ReversibleArrayList(Collection<T> c) {
+		super(c);
+	}
+	public Iterable<T> reversed(){
+		
+		return new Iterable<T>() {
+			
+			@Override
+			public Iterator<T> iterator() {
+				return new Iterator<T>() {
+					int current = size() - 1;
+					@Override
+					public boolean hasNext() {
+						return current > -1;
+					}
+
+					@Override
+					public T next() {
+						return get(current--);
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+				};
+			}
+		};
+	}
+}
+
+public class AdapterMethodIdiom {
+
+	public static void main(String[] args) {
+		
+		ReversibleArrayList<String> ral =
+				new ReversibleArrayList<String>(
+						Arrays.asList("To be or not to be".split(" ")));
+		for(String s : ral) {
+			System.out.print(s + " ");
+		}
+		System.out.println();
+		for(String s : ral.reversed()) {
+			System.out.print(s + " ");
+		}
+	}
+}
+/**
+To be or not to be 
+be to not or be To 
+*/
+```
+
+如果直接将 ral 对象置于foreach语句中，将得到默认的向前迭代器。但是如果在该对象上调用reversed()方法，就会产生不同的行为。
+
+## 总结
+
+Java提供了大量持有对象的方式：
+
+1. 数组将数字与对象联系起来。它保存类型明确的对象，查询对象时，不需要对结果做类型转换。它可以是多维的，可以保存基本类型的数据。但是，数组一旦生成，其容量就不能改变。
+2. Collection保存单一的元素，而Map保存相关的键值对。有了Java的泛型，你就可以指定容器中存放的对象类型，因此你就不会将错误类型的对象放置到容器中，并且在从容器中获取元素时，不必进行类型转换。各种Collection和各种Map都可以在你向其中添加更多的元素时，自动调整尺寸。**容器不能持有基本类型，但是自动包装机制会仔细地执行基本类型到容器中所持有的包装器类型之间的双向转换。**
+3. 像数组一样，List也建立数字索引与对象的关联，因此，数组和List都是排好序的容器。List能够自动扩充容量。
+4. 如果要进行大量的随机访问，就使用ArrayList；如果要经常从表中间插入或删除元素，则应该使用LinkedList。
+5. 各种Queue以及栈的行为，由LinkedList提供支持。
+6. Map是一种将对象（而非数字）与对象相关联的设计。HashMap设计用来快速访问；而TreeMap保持“键”始终处于排序状态，所以没有JHashMap快。LinkedHashMap保持元素插入的顺序，但是也通过散列提供了快速访问的能力。
+7. Set不接受重复元素。HashSet提供最快的查询速度，而TreeSet保持元素处于排序状态。LinkedHashSet以插入顺序保存元素。
+8. 新程序中不应该使用过时的Vector、Hashtable和Stack。
+
+浏览一下Java容器的简图：（不包含抽象类和遗留构件）
+
+![img](E:\github上项目\Java\Java\_image\0_13145197181F0f.gif)
+
+可以看到，其实只有四种容器：Map、List、Set和Queue，它们各有两到三个实现版本。
+
+- 常用的容器用黑色粗线框表示。
+- 点线框表示接口
+- 实现框表示普通的（具体的）类
+- 带有空心箭头的点线表示一个特定的类实现了一个接口
+- 实心箭头表示某个类可以生成箭头所指向类的对象
+
+例如，任意的Collection可以生成Iterator，而List可以生成ListIterator（也能生成普通的Iterator，因此List继承自Collection）
