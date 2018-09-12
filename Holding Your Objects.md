@@ -1247,7 +1247,7 @@ Java提供了大量持有对象的方式：
 
 浏览一下Java容器的简图：（不包含抽象类和遗留构件）
 
-![img](E:\github上项目\Java\Java\_image\0_13145197181F0f.gif)
+![img](./_image/0_13145197181F0f.gif)
 
 可以看到，其实只有四种容器：Map、List、Set和Queue，它们各有两到三个实现版本。
 
