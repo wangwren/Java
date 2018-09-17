@@ -62,3 +62,99 @@ try{
 注意在 try 块内部，许多不同的方法调用可能会产生类型相同的异常，而你只需要提供一个针对此类型的异常处理程序。
 #### 终止与恢复
 
+异常处理理论上有两种基本模型。Java支持**终止模型**。在这种模型中，将假设错误非常关键，以至于程序无法返回到异常发生的地方继续执行。一旦异常被抛出，就表明已无法挽回，也不能回来继续执行。
+
+另一种称为**恢复模型**。意思是处理程序的工作是修正错误，然后重新尝试调用出问题的方法，并认为第二次能成功。对于恢复模型，通常希望异常被处理之后能继续执行程序。如果想要用Java实现类似恢复的行为，那么在遇见错误时就不能抛出异常，而是调用方法来修正该错误。或者，把 try 块放在 while 循环里，这样就不断地进行 try 块，直到得到满意的结果。
+
+长久以来，尽管程序员们使用的操作系统支持恢复模型的异常处理，但他们最终还是转向使用类似“终止模型”的代码，并且忽略恢复行为。所以虽然恢复模型开始显得很吸引人，但不是很实用。其中的主要原因可能是它导致的耦合：**恢复性的处理程序需要了解异常抛出的地点，这势必要包含依赖于抛出位置的非通用性代码。这增加了代码编写和维护的困难，对于异常可能会从许多地方抛出的大型程序来说，更是如此**。
+
+## 创建自定义异常
+
+要自己定义异常类，必须从已有的异常类继承，最好是选择意思相近的异常类继承（不过这样的异常并不容易找）。建立新的异常类型最简单的方式就是**让编译器为你产生默认构造器**，所以这几乎不用写多少代码。
+
+```java
+package exceptions;
+
+class SimpleException extends Exception{}
+
+public class InherintingExceptions {
+	public void f() throws SimpleException {
+		System.out.println("Throw SimpleException from f()");
+		throw new SimpleException();
+	}
+	public static void main(String[] args) {
+		InherintingExceptions sed = new InherintingExceptions();
+		try {
+			sed.f();
+		}catch (SimpleException e) {
+			System.out.println("Caught it!");
+		}
+	}
+}
+/**
+Throw SimpleException from f()
+Caught it!
+*/
+```
+
+**编译器创建了默认构造器，它将自动调用基类的默认构造器。**本例中不会得到像`SimpleException(String)`这样的构造器，这种构造器也不实用。你将看到，对异常来说，**最重要的部分就是类名**，所以本例中建立的异常类在大多数情况下已经够用了。
+
+通过写入`System.err`而将错误发送给**标准错误流**。通常这比把错误信息输出到`System.out`要好，因为`System.out`也许会被重定向。如果把结果送到`System.err`，它就不会随`System.out`，一起被重定向，这样更容易被用户注意。
+
+也可以为异常类定义一个接受字符串参数的构造器：
+
+```java
+package exceptions;
+
+class MyException extends Exception{
+	public MyException() {
+		
+	}
+	
+	public MyException(String msg) {
+		super(msg);
+	}
+}
+
+public class FullConstructors {
+	public static void f() throws MyException {
+		System.out.println("Throw MyException from f()");
+		throw new MyException();
+	}
+	public static void g() throws MyException {
+		System.out.println("Throw MyException from g()");
+		throw new MyException("Originated in g()");
+	}
+	public static void main(String[] args) {
+		try {
+			f();
+		}catch (MyException e) {
+			e.printStackTrace(System.out);
+		}
+		
+		try {
+			g();
+		}catch (MyException e) {
+			e.printStackTrace(System.out);
+		}
+	}
+}
+/**
+Throw MyException from f()
+exceptions.MyException
+	at exceptions.FullConstructors.f(FullConstructors.java:16)
+	at exceptions.FullConstructors.main(FullConstructors.java:24)
+Throw MyException from g()
+exceptions.MyException: Originated in g()
+	at exceptions.FullConstructors.g(FullConstructors.java:20)
+	at exceptions.FullConstructors.main(FullConstructors.java:30)
+*/
+```
+
+新增的代码不长：两个构造器定义了MyException类型对象的创建方式。对于第二个构造器，使用super关键字明确调用了其基类构造器，它接受一个字符串作为参数。
+
+在异常处理程序中，调用了在Throwable类声明(Exception即从此类继承)的`printStackTrace()`方法。就像从输出中看到的，它将打印“从方法调用处”的方法调用序列。这里，信息被发送到了System.out，并自动地被捕获和显示在输出中。但是，如果调用默认版本：`e.printStackTrace();`则信息将被输出到标准错误流。
+
+练习4做
+
+练习5做
