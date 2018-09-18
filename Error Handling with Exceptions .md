@@ -155,6 +155,161 @@ exceptions.MyException: Originated in g()
 
 在异常处理程序中，调用了在Throwable类声明(Exception即从此类继承)的`printStackTrace()`方法。就像从输出中看到的，它将打印“从方法调用处”的方法调用序列。这里，信息被发送到了System.out，并自动地被捕获和显示在输出中。但是，如果调用默认版本：`e.printStackTrace();`则信息将被输出到标准错误流。
 
-练习4做
+### 异常与记录日志
 
-练习5做
+```java
+package exceptions;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.logging.Logger;
+
+class LoggingException extends Exception{
+	private static Logger logger = Logger.getLogger("LoggingException");
+	public LoggingException() {
+		StringWriter trace = new StringWriter();
+		printStackTrace(new PrintWriter(trace));
+		logger.severe(trace.toString());
+	}
+}
+
+public class LoggingExceptions {
+
+	public static void main(String[] args) {
+		try {
+			throw new LoggingException();
+		}catch (LoggingException e) {
+			System.err.println("Caught" + e);
+		}
+		try {
+			throw new LoggingException();
+		}catch (LoggingException e) {
+			System.err.println("Caught" + e);
+		}
+	}
+}
+/**
+九月 18, 2018 11:44:51 下午 exceptions.LoggingException <init>
+严重: exceptions.LoggingException
+	at exceptions.LoggingExceptions.main(LoggingExceptions.java:20)
+
+Caughtexceptions.LoggingException
+九月 18, 2018 11:44:51 下午 exceptions.LoggingException <init>
+严重: exceptions.LoggingException
+	at exceptions.LoggingExceptions.main(LoggingExceptions.java:25)
+
+Caughtexceptions.LoggingException
+*/
+```
+
+静态的`Logger.getLogger()`方法创建了一个String参数相关联的 Logger 对象（通常与错误相关的包名或类名），这个Logger对象会将其输出发送到`System.err`。向Logger写入的最简单方式就是直接调用与日志记录消息的级别相关联的方法，这里使用的是`server()`。为了产生日志记录消息，我们想要获取异常抛出处的栈轨迹，但是`printStackTrace()`不会默认地产生字符串。为了获取字符串，我们需要使用重载的`printStackTrace()`方法，它接受一个`java.io.PrintWriter`对象作为参数。
+
+尽管由于LoggerException将所有记录日志的基础设施都构建在异常自身中，使得它所使用的方式非常方便，并因此不需要客户端程序员的干预就可以自动运行，但是更常见的情形是我们需要捕获和记录其他人编写的异常，因此我们必须在异常处理程序中生成日志消息：
+
+```java
+package exceptions;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.logging.Logger;
+
+public class LoggingException2 {
+
+	private static Logger logger = Logger.getLogger("LoggingException2");
+	static void logException(Exception e) {
+		StringWriter trace = new StringWriter();
+		e.printStackTrace(new PrintWriter(trace));
+		logger.severe(trace.toString());
+	}
+	public static void main(String[] args) {
+		try {
+			throw new NullPointerException();
+		}catch (NullPointerException e) {
+			logException(e);
+		}
+	}
+}
+/**
+九月 19, 2018 12:01:33 上午 exceptions.LoggingException2 logException
+严重: java.lang.NullPointerException
+	at exceptions.LoggingException2.main(LoggingException2.java:17)
+*/
+```
+
+还可以更进一步自定义异常，比如加入额外的构造器和成员：
+
+```java
+package exceptions;
+
+
+class MyException2 extends Exception{
+	private int x;
+	public MyException2() {
+		
+	}
+	public MyException2(String msg) {
+		super(msg);
+	}
+	public MyException2(String msg,int x) {
+		super(msg);
+		this.x = x;
+	}
+	
+	public int val() {
+		return x;
+	}
+	
+	/**
+	 * 重写父类Throwable的方法
+	 */
+	@Override
+	public String getMessage() {
+		return "Detail Message : " + x + " " + super.getMessage();
+	}
+	
+}
+
+public class ExtraFeatures {
+
+	public static void f() throws MyException2 {
+		System.out.println("Throwing MyException2 from f()");
+		throw new MyException2();
+	}
+	
+	public static void g() throws MyException2 {
+		System.out.println("Throwing MyException2 from g()");
+		throw new MyException2("Originated in g()");
+	}
+	
+	public static void h() throws MyException2 {
+		System.out.println("Throwing MyException2 from h()");
+		throw new MyException2("Originated in g()", 47);
+	}
+	
+	public static void main(String[] args) {
+		try {
+			f();
+		}catch (MyException2 e) {
+			e.printStackTrace(System.out);
+		}
+		try {
+			g();
+		}catch (MyException2 e) {
+			e.printStackTrace(System.out);
+		}
+		try {
+			h();
+		}catch (MyException2 e) {
+			e.printStackTrace(System.out);
+			System.out.println("e.val() = " + e.val());
+		}
+	}
+}
+```
+
+新的异常添加了字段 x 以及设定 x 值的构造器和读取数据的方法。此外，还覆盖了`Throwable.getMessgae()`方法，以产生更详细的信息。对于 异常类来说，getMessage()方法有点类似于toString()方法。
+
+既然异常也是对象的一种，所以可以继续修改这个异常类，以得到更强的功能。但要记住，使用程序包的客户端程序员可能仅仅只是查看一下抛出的异常类型，其他的就不管了（大多数Java库里的异常都是这么用的），所以对异常所添加的其他功能也许根本用不上。
+
+## 异常说明
+
