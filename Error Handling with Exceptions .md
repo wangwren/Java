@@ -313,3 +313,239 @@ public class ExtraFeatures {
 
 ## 异常说明
 
+Java鼓励人们把方法可能会抛出的异常告知使用此方法的客户端程序员。这是种优雅的做法，它使得调用者能确切知道写什么样的代码可以捕获所有潜在的异常。当然，如果提供了源代码，客户端程序员可以在源代码中查找 throw 语句来获知相关信息，然而程序库通常并不与源代码一起发布。为了预防这样的问题，Java提供了相应的语法（并强制使用这个语法），使你能以礼貌的方式告知客户端程序员某个方法可能抛出的异常类型，然后客户端程序员就可以进行相应的处理。这就是**异常说明**，它属于方法声明的一部分，紧跟在形式参数列表之后。
+
+异常说明使用了附加的关键字 throws ，后面接一个所有潜在异常类型的列表，所以方法定义可能看起来像这样：
+
+```java
+void f() throws TooBig,TooSmall,DivZero{//...}
+```
+
+但是，要是这样写，就表示此方法不会抛出任何异常（除了从RuntimeException继承的异常，它们可以在没有异常说明的情况下被抛出。
+
+```java
+void f(){//...}
+```
+
+代码必须与异常说明保持一致。如果方法里的代码产生了异常却没有进行处理，编译器会发现这个问题并提醒你：**要么处理这个异常，要么就在异常说明中表明此方法将产生异常**。通过这种自顶向下强制执行的异常说明机制，Java在编译时就可以保证一定水平的异常正确性。
+
+不过还是有个能“作弊”的地方：可以声明方法将抛出异常，实际上却不抛出。编译器相信了这个声明，并强制此方法的用户像真的抛出异常那样使用这个方法。这样做的好处是，为异常先占一个位置，以后就可以抛出这种异常而不修改已有的代码。在定义抽象基类和接口时这种能力很重要，这样派生类或接口实现能够抛出这些预先声明的异常。
+
+这种在编译时被强制检查的异常称为**被检查的异常**。
+
+## 捕获所有异常
+
+可以只写一个异常处理程序来捕获所有类型的异常。通过捕获异常类型的基类**Exception**，就可以做到这一点（事实上还有其他的基类，但Exception是同编程活动相关的基类）：
+
+```java
+catch(Exception e){
+    System.out.println("Caught an exception");
+}
+```
+
+这将捕获所有异常，所以最好把它放在处理程序列表的末尾，以防它抢在其他处理程序之前先把异常捕获了。
+
+因为Exception是与编程有关的所有异常类的基类，所以它不会含有太多具体的信息，不过可以调用它从其基类Throwable继承的方法：
+
+```java
+String getMessage()
+String getLocalizedMessage()
+```
+
+用来获取详细信息，或用本地语言表示的详细信息。
+
+```java
+String toString()
+```
+
+返回对Throwable的简单描述，要是有详细信息的话，也会把它包含在内。
+
+```java
+void printStackTrace()
+void printStackTrace(PrintStream)
+void printStackTrace(java.io.PrintWriter)
+```
+
+打印Throwable和Throwable的调用栈轨迹。调用栈显示了“把你带到异常抛出地点”的方法调用序列。其中第一个版本输出到标准错误，后两个版本允许选择要输出的流。
+
+```java
+Throwable fillInStackTrace()
+```
+
+用于在Throwable对象的内部记录栈帧的当前状态。这在程序重新抛出错误或异常时很有用。
+
+此外，也可以使用Throwable从其基类Object（也是所有类的基类）继承的方法。对于异常来说，getClass()也许是个很好用的方法，它将返回一个表示此对象类型的对象。然后可以使用getName()方法查询这个Class对象包含包信息的名称，或者使用只产生类名称的getSimpleName()方法。
+
+下面的例子演示了如何使用Exception类型的方法：
+
+```java
+package exceptions;
+
+public class ExceptionMethods {
+
+	public static void main(String[] args) {
+		try {
+			throw new Exception("My Exception");
+		}catch (Exception e) {
+			System.out.println("Caught Exception");
+			System.out.println("getMessage():" + e.getMessage());
+			System.out.println("getLocalizedMessage():" + e.getLocalizedMessage());
+			System.out.println("toString():" + e);
+			System.out.println("printStackTrace():");
+			e.printStackTrace(System.out);
+		}
+	}
+}
+/**
+Caught Exception
+getMessage():My Exception
+getLocalizedMessage():My Exception
+toString():java.lang.Exception: My Exception
+printStackTrace():
+java.lang.Exception: My Exception
+	at exceptions.ExceptionMethods.main(ExceptionMethods.java:7)
+*/
+```
+
+可以发现每个方法都比前一个提供了更多的信息---实际上它们每一个都是前一个的超集。
+
+### 栈轨迹
+
+printStackTrace()方法所提供的信息可以通过getStackTrace()方法来直接访问，这个方法将返回一个由栈轨迹中的元素所构成的数组，其中每一个元素都表示栈中的一帧。元素 0 是栈顶元素，并且是调用序列中的最后一个方法调用（这个Throwable被创建和抛出之处）。数组中的最后一个元素和栈底是调用序列中的第一个方法调用。下面的程序是一个简单的演示示例：
+
+```java
+package exceptions;
+
+public class WhoCalled {
+
+	static void f() {
+		//Generate an exception to fill in the stack trace
+		try {
+			throw new Exception();
+		}catch (Exception e) {
+			for(StackTraceElement ste : e.getStackTrace()) {
+				System.out.println(ste.getMethodName());
+			}
+		}
+	}
+	static void g() {
+		f();
+	}
+	static void h() {
+		g();
+	}
+	public static void main(String[] args) {
+		f();
+		System.out.println("-----------------------");
+		g();
+		System.out.println("-----------------------");
+		h();
+	}
+}
+/**
+f
+main
+-----------------------
+f
+g
+main
+-----------------------
+f
+g
+h
+main
+*/
+```
+
+### 重新抛出异常
+
+有时希望把刚捕获的异常重新抛出，尤其是在使用Exception捕获所有异常的时候。既然已经得到了对当前异常对象的引用，可以直接把它重新抛出：
+
+```java
+catch(Exception e){
+    System.out.println("An exception was throw");
+    throw e;
+}
+```
+
+重新抛出异常会把异常抛给上一级环境中的异常处理程序，同一个try块的后续catch子句将被忽略。此外，异常对象的所有信息都得以保持，所以高一级环境中捕获此异常的处理程序可以从这个异常对象中得到所有信息。
+
+如果只是把当前异常对象重新抛出，那么printStackTrace()方法显示的将是原来异常抛出点的调用栈信息，而并非重新抛出点的信息。要想要更新这个信息，可以调用fillStackTrace()方法，这将返回一个Throwable对象，它是通过把当前调用栈信息填入原来那个异常对象而建立的，就像这样：
+
+```java
+package exceptions;
+
+public class Rethrowing {
+
+	public static void f() throws Exception {
+		System.out.println("originating the exception in f()");
+		throw new Exception("throw from f()");
+	}
+	
+	public static void g() throws Exception {
+		try {
+			f();
+		}catch (Exception e) {
+			System.out.println("Inside g(),e.printStackTrace()");
+			e.printStackTrace(System.out);
+			throw e;
+		}
+	}
+	
+	public static void h() throws Exception {
+		try {
+			f();
+		}catch (Exception e) {
+			System.out.println("Inside h(),e,printStackTrace()");
+			e.printStackTrace(System.out);
+			throw (Exception)e.fillInStackTrace();	//在这
+		}
+	}
+	
+	public static void main(String[] args) {
+		try {
+			g();
+		}catch (Exception e) {
+			System.out.println("main:printStackTrace()");
+			e.printStackTrace(System.out);
+		}
+		
+		try {
+			h();
+		}catch (Exception e) {
+			System.out.println("main:printStackTrace()");
+			e.printStackTrace(System.out);
+		}
+	}
+}
+/**
+originating the exception in f()
+Inside g(),e.printStackTrace()
+java.lang.Exception: throw from f()
+	at exceptions.Rethrowing.f(Rethrowing.java:7)
+	at exceptions.Rethrowing.g(Rethrowing.java:12)
+	at exceptions.Rethrowing.main(Rethrowing.java:32)
+main:printStackTrace()
+java.lang.Exception: throw from f()
+	at exceptions.Rethrowing.f(Rethrowing.java:7)
+	at exceptions.Rethrowing.g(Rethrowing.java:12)
+	at exceptions.Rethrowing.main(Rethrowing.java:32)
+originating the exception in f()
+Inside h(),e,printStackTrace()
+java.lang.Exception: throw from f()
+	at exceptions.Rethrowing.f(Rethrowing.java:7)
+	at exceptions.Rethrowing.h(Rethrowing.java:22)
+	at exceptions.Rethrowing.main(Rethrowing.java:39)
+main:printStackTrace()
+java.lang.Exception: throw from f()
+	at exceptions.Rethrowing.h(Rethrowing.java:26)
+	at exceptions.Rethrowing.main(Rethrowing.java:39)
+*/
+```
+
+调用fillStackTrace()的那一行就成了异常的新发生地了。
+
+永远不必为清理前一个异常对象而担心，或者说为异常对象的清理而担心。它们都是用new在堆上创建的对象，所以垃圾回收器会自动把它们清理掉。
+
+### 异常链
+
