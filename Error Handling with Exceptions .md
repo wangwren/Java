@@ -551,3 +551,51 @@ java.lang.Exception: throw from f()
 常常会想要在捕获一个异常后抛出另一个异常，并且希望把原始异常的信息保存下来，这被称为**异常链**。在JDK1.4以前，程序员必须自己编写代码来保存原始异常的信息。现在所有Throwable的子类在构造器中都可以接受一个 cause 对象作为参数。这个 cause 就用来表示原始异常，这样通过把原始异常传递给新的异常，使得即使在当前位置创建并抛出了新的异常，也能通过这个异常链追踪到异常最初发生的位置。
 
 有趣的是，在Throwable的子类中，只有三种基本的异常类提供了带 cause 参数的构造器。它们是 Error (用于Java虚拟机报告系统错误)、Exception以及 RuntimeException。如果要把其他类型的异常链接起来，应该使用initCause()方法而不是构造器。
+
+## Java标准异常
+
+Throwable这个Java类被用来表示任何可以作为异常被抛出的类。Throwable对象可分为两种类型（指从Throwable继承得到的类型）：
+
+- Error用来表示编译时和系统错误（除特殊情况外，一般不用关心）；
+- Exception是可以被抛出的基本类型，在Java类库，用户方法以及运行时故障中都可能抛出Exception型异常。所以Java程序员关心的基类型通常是Exception。
+
+属于运行时异常的类型有很多，它们会自动被Java虚拟机抛出，所以不必在异常说明中把它们列出来。这些异常都是从RuntimeException类继承而来，所以既体现了继承的优点，使用起来也很方便。这构成了一组具有相同特征和行为的异常类型。并且，也不需要在异常说明中声明方法将抛出RuntimeException类型的异常(或者任何从RuntimeException继承的异常)，它们也被称为**不受检查异常**。**这种异常属于错误，将自动捕获**。
+
+如果不捕获这种类型的异常，因为编译器没有在这个问题上对异常说明进行强制检查，RuntimeException类型的异常也许会穿越所有的执行路径直达main()方法，而不会被捕获。
+
+```java
+package exceptions;
+
+public class NeverCaught {
+
+	static void f() {
+		throw new RuntimeException("From f()");
+	}
+	
+	static void g() {
+		f();
+	}
+	
+	public static void main(String[] args) {
+		g();
+	}
+}
+/**
+Exception in thread "main" java.lang.RuntimeException: From f()
+	at exceptions.NeverCaught.f(NeverCaught.java:6)
+	at exceptions.NeverCaught.g(NeverCaught.java:10)
+	at exceptions.NeverCaught.main(NeverCaught.java:14)
+*/
+```
+
+RuntimeException(或任何从继承的异常)是一个特例。对于这种异常类型，编译器不需要异常说明，其输出被报告给了System.err。
+
+所以答案是：如果RuntimeException没有被捕获而直达main()，那么在程序退出前将调用异常printStackTrace()方法、
+
+请务必记住：只能在代码中忽略RuntimeException（及其子类）类型的异常，其他类型异常的处理都是由编译器强制实施的。究其原因，RuntimeException代表的是编程错误：
+
+- 无法预料的错误。比如从你控制范围之外传递进来的null引用。
+- 作为程序员，应该在代码中进行检查的错误。（比如对于ArrayIndexOutOfBoundsException，就得注意一下数组的大小了。）在一个地方发生的异常，常常会在另一个地方导致错误。
+
+## 使用finally进行清理
+
