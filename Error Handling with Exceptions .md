@@ -599,3 +599,296 @@ RuntimeException(或任何从继承的异常)是一个特例。对于这种异�
 
 ## 使用finally进行清理
 
+对于一些代码，可能会希望无论 try 块中的异常是否抛出，它们都能得到执行。这通常适用于内存回收之外的情况（因为回收由垃圾回收器完成）。为了达到这个效果，可以在异常处理程序后面加上 finally 子句。完整的异常处理程序看起来像这样：
+
+```java
+try{
+    //The guarded region:Dangerous activities
+    //that might throw A,B,or C
+}catch(A a1){
+    //Handler for situation A
+}catch(B b1){
+    //Handler for situation B
+}catch(C c1){
+    //Handler for situation C
+}finally{
+    //Activities that happen every time
+}
+```
+
+为了证明finally子句总能运行，可以试试下面这个程序：
+
+```java
+package exceptions;
+
+class ThreeException extends Exception{}
+
+public class FianllyWorks {
+
+	static int count = 0;
+	public static void main(String[] args) {
+		while(true) {
+			try {
+				if(count++ == 0) {
+					throw new ThreeException();
+				}
+			}catch (ThreeException e) {
+				System.out.println("ThreeException");
+			}finally {
+				System.out.println("In finally clause");
+				if(count == 2) {
+					break;
+				}
+			}
+		}
+	}
+}
+/**
+ThreeException
+In finally clause
+In finally clause
+*/
+```
+
+可以从输出中发现，无论异常是否被抛出，finally子句总能被执行。
+
+这个程序也给了我们一些思路，当Java中的异常不允许我们呢回到异常抛出的地点时，那么该如何应对呢？如果把try块放在循环里，就建立了一个“程序继续执行之前必须要达到”的条件。还可以加入一个static类型的计数器或者别的装置，使循环在放弃以前能尝试一定的次数。这将使程序的健壮性更上一个台阶。
+
+### finally用来做什么
+
+对于没有垃圾回收和析构函数自动调用的语言来说，finally非常重要。它能使程序员保证：无论try块里发生了什么，内存总能得到释放。但Java有垃圾回收机制，所以内存释放不再是问题。而且，Java也没有析构函数可供调用。
+
+当要把除内存之外的资源恢复到它们的初始状态时，就要用到finally子句。这种需要清理的资源包括：已经打开的文件或网络连接，在屏幕上画的图形，甚至可以是外部世界的某个开关。
+
+甚至在异常没有被当前的异常处理程序捕获的情况下，异常处理机制也会在跳到更高一层的异常处理程序之前，执行finally子句。
+
+```java
+package exceptions;
+
+class FourException extends Exception{}
+
+public class AlwaysFinally {
+
+	public static void main(String[] args) {
+		System.out.println("Entering first try block");
+		try {
+			System.out.println("Entering second try block");
+			try {
+				throw new FourException();
+			}finally {
+				System.out.println("finally in 2nd try block");
+			}
+		}catch(FourException e) {
+			System.out.println("Caught FourException in 1st try block");
+		}finally {
+			System.out.println("finally in 1st try block");
+		}
+	}
+}
+/**
+ThreeException
+In finally clause
+In finally clause
+*/
+```
+
+当涉及break和continue语句的时候，finally子句也会得到执行。请注意，如果把finally子句和带标签的break及continue配合使用，在Java里就没必要使用goto语句中了。
+
+### 在return中使用finally
+
+因为finally子句总是会执行的，所以在一个方法中，可以从多个点返回，并且可以保证重要的清理工作仍旧会执行：
+
+```java
+package exceptions;
+public class MultipleReturns {
+
+	public static void f(int i) {
+		System.out.println("Initialization that requires cleanup");
+		try {
+			System.out.println("Point 1");
+			if(i == 1) {
+				return;
+			}
+			System.out.println("Point 2");
+			if(i == 2) {
+				return;
+			}
+			System.out.println("Point 3");
+			if(i == 3) {
+				return;
+			}
+			System.out.println("End");
+			return;
+		}finally {
+			System.out.println("Performing cleanup");
+		}
+	}
+	public static void main(String[] args) {
+		for(int i = 1;i <= 4;i++) {
+			f(i);
+		}
+	}
+}
+/**
+Initialization that requires cleanup
+Point 1
+Performing cleanup
+Initialization that requires cleanup
+Point 1
+Point 2
+Performing cleanup
+Initialization that requires cleanup
+Point 1
+Point 2
+Point 3
+Performing cleanup
+Initialization that requires cleanup
+Point 1
+Point 2
+Point 3
+End
+Performing cleanup
+*/
+```
+
+从输出中可以看出，在finally类内部，从何处返回无关紧要。
+
+### 遗憾：异常缺失
+
+遗憾的是，Java的异常实现也有瑕疵。异常作为程序出错的标志，决不应该被忽略，但它还是有可能被轻易地忽略。用某些特殊的方式使用finally子句，就会发生这种情况：
+
+```java
+package exceptions;
+
+class VeryImportantException extends Exception{
+	public String toString() {
+		return "A very important exception";
+	}
+}
+
+class HoHumException extends Exception{
+	public String toString() {
+		return "A trivial exception";
+	}
+}
+
+public class LostMessage {
+	
+	void f() throws VeryImportantException {
+		throw new VeryImportantException();
+	}
+	
+	void dispose() throws HoHumException {
+		throw new HoHumException();
+	}
+	public static void main(String[] args) {
+		try {
+			LostMessage lm = new LostMessage();
+			try {
+				lm.f();
+			}finally {
+				lm.dispose();
+			}
+		}catch (Exception e) {
+			System.out.println(e);
+		}
+	}
+}
+/**
+A trivial exception
+*/
+```
+
+从输出中可以看到，VeryImportantException不见了，它被 finally 子句里的 HollumException所取代。这是相当严重的缺陷，因为异常可能会以一种比前面例子所示更微妙和难以察觉的方式完全丢失。
+
+## 异常的限制
+
+当覆盖方法的时候，**只能抛出在基类方法的异常说明里列出的那些异常**。这个限制很有用，因为这意味着，当基类使用的代码应用到其派生类对象的时候，一样能够工作（当然，这是面向对象的基本概念），异常也不例外。
+
+下面例子演示了这种（在编译时）施加在异常上面的限制：
+
+```java
+package exceptions;
+
+class BaseballException extends Exception{}
+class Foul extends BaseballException{}
+class Strike extends BaseballException{}
+
+abstract class Inning{
+	public Inning() throws BaseballException{}
+	public void event() throws BaseballException {
+		//Dosen't actually have to throw anything
+	}
+	public abstract void atBat() throws Strike,Foul;
+	public void walk(){}
+}
+
+class StormException extends Exception{}
+class RainedOut extends StormException{}
+class PopFoul extends Foul{}
+
+interface Storm{
+	public void event() throws RainedOut;
+	public void rainHard() throws RainedOut;
+}
+
+public class StormyInning extends Inning implements Storm{
+
+	public StormyInning() throws RainedOut,BaseballException {
+		
+	}
+	
+	public StormyInning(String s) throws Foul,BaseballException{
+		
+	}
+	
+	//实现的接口中有该方法，抽象类中也有该方法，可以选择不抛出异常
+	public void event() {}
+	
+	
+	@Override
+	public void rainHard() throws RainedOut {}
+
+	@Override
+	public void atBat() throws PopFoul{}
+	
+	public static void main(String[] args) {
+		try {
+			StormyInning si = new StormyInning();
+			si.atBat();
+		}catch (PopFoul e) {
+			System.out.println("Pop foul");
+		}catch (RainedOut e) {
+			System.out.println("Rained out");
+		}catch (BaseballException e) {
+			System.out.println("Generic baseball exception");
+		}
+		
+		try {
+			Inning i = new StormyInning();
+			i.atBat();
+		}catch (Strike e) {
+			System.out.println("Strike");
+		}catch (Foul e) {
+			System.out.println("Foul");
+		}catch (RainedOut e) {
+			System.out.println("Rained out");
+		}catch (BaseballException e) {
+			System.out.println("Generic baseball exception");
+		}
+	}
+}
+```
+
+在 Inning 类中，可以看到构造器和 event()方法都声明将抛出异常，但实际上没有抛出。这种方式使你能强制用户去捕获可能在覆盖后的event()版本中增加的异常，所以它很合理，这对于抽象方法同样成立，比如atBat()。
+
+接口 Storm 值得注意，因为它包含了一个在 Inning 中定义的方法 event() 和一个不再 Inning中定义的方法 rainHard()。这两个方法都抛出新的异常RainedOut。如果StormyInning类在扩展 Inning类的同时又实现了 Storm接口，那么 Storm 里的 event() 方法就不能改变在 Inning中的event()方法的异常接口。否则的话，在使用基类的时候就不能判断是否捕获了正确的异常，所以这也很合理。当然，如果接口里定义的方法不是来自于基类，比如rainHard()，那么此方法抛出什么样的异常都没有问题。
+
+异常限制对构造器不起作用。你会发现StormyInning的构造器可以抛出任何异常，而不必理会基类构造器所抛出的异常。然而，因为基类构造器必须以这样或那样的方式被调用（这里默认构造器将自动被调用），派生类构造器的异常说明必须包含基类构造器的异常说明。
+
+**子类不能抛出比父类更多的异常**
+
+尽管在继承过程中，编译器会对异常说明做强制要求，但异常说明本身并不属于方法类型的一部分，方法类型是由方法的名字与参数的类型组成的。因此，不能基于异常说明来重载方法。此外，一个出现在基类方法的异常说明中的异常，不一定会出现在派生类方法的异常说明里。这点同继承的规则明显不同，在继承中，基类的方法必须出现在派生类里，换句话说，在继承和覆盖的过程中，**某个特定方法的“异常说明接口”不是变大了而是变小了---这恰好和类接口在继承时的情形相反**。
+
+## 构造器
+
