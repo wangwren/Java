@@ -892,3 +892,135 @@ public class StormyInning extends Inning implements Storm{
 
 ## 构造器
 
+有一点很重要，即“如果异常发生了，所有东西能被正确的清理吗？”尽管大多数情况下是非常安全的，但涉及构造器时，问题就出现了。构造器会把对象设置成安全的初始状态，但还会有别的动作，比如打开一个文件，这样的动作只有在对象使用完毕并且用户调用了特殊的清理方法之后才能得以清理。如果在构造器内抛出了异常，这些清理行为也许就不能正常工作了。这意味着在编写构造器时要格外细心。
+
+读者也许会认为使用 finally 就可以解决问题。但问题并非如此简单，因为 finally 会每次都执行清理代码。如果构造器在其执行过程中半途而废，也许该对象的某些部分还没有被成功创建，而这些部分在finally子句中却要被清理的。
+
+在下面的例子中，建立了一个 InputFile 类，它能打开一个文件并且每次读取其中的一行。这里使用了 Java标准输入/输出库中的 FileReader和 BufferedReader类。
+
+```java
+package exceptions;
+
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+
+public class InputFile {
+
+	private BufferedReader in;
+	public InputFile(String fname) throws Exception {
+		try {
+			in = new BufferedReader(new FileReader(fname));
+		}catch(FileNotFoundException e){
+			System.out.println("Could not open " + fname);
+			throw e;
+		}catch (Exception e) {
+			//All other exceptions must close it
+			try {
+				in.close();
+			}catch (IOException e2) {
+				System.out.println("in.close() unsuccessful");
+			}
+			throw e;
+		}finally {
+			//Don't close it here
+		}
+	}
+	public String getLine() {
+		String s;
+		try {
+			s = in.readLine();
+		}catch (IOException e) {
+			throw new RuntimeException("readLine() failed");
+		}
+		return s;
+	}
+	public void dispose() {
+		try {
+			in.close();
+			System.out.println("dispose() successful");
+		}catch (IOException e) {
+			throw new RuntimeException("in.close() failed");
+		}
+	}
+}
+```
+
+InputFile的构造器接受字符串作为参数，该字符串表示所要打开的文件名。在 try 块中，会使用此文件名建立了 FileReader对象。FileReader对象本身用处并不大，但可以用它来建立BufferedReader对象。注意，使用InputFile的好处就能把两步操作合成一步。
+
+如果FileReader的构造器失败了，将抛出FileNotFoundException异常。对于这个异常，并不需要关闭文件，因为这个文件还没有被打开。而任何其他捕获异常的catch子句必须关闭文件，因为在他们捕获到异常之时，文件已经打开了。close()方法也可能会抛出异常，所以尽管它已经在另一个catch子句块里了，还是要再用一层try-catch----对Java编译器而言，这只不过是又多了一对花括号。在本地做完处理之后，异常被重新抛出，对于构造器而言这么做是很合适的，因为你总不希望去误导调用方，让他认为“这个对象已经创建完毕，可以使用了”。
+
+在本例中，由于finally会在每次完成构造器之后都执行一遍，因此它实在不该是调用close()关闭文件的地方。我们希望文件在InputFile对象的整个生命周期内部处于打开状态。
+
+对于在构造阶段可能会抛出异常，并且要求清理的类，最安全的使用方式是使用嵌套的try子句。
+
+## 异常匹配
+
+抛出异常的时候，异常处理系统会按照代码的书写顺序找出“最近”的处理程序。找到匹配的处理程序之后，它就认为以后吃那个将得到处理，然后就不再继续查找。
+
+查找的时候并不要求抛出的异常同处理程序所声明的异常完全匹配。派生类的对象也可以匹配其基类的处理程序，就像这样：
+
+```java
+package exceptions;
+
+class Annoyance extends Exception{}
+class Sneeze extends Annoyance{}
+
+public class Human {
+
+	public static void main(String[] args) {
+		try {
+			throw new Sneeze();
+		}catch (Sneeze s) {
+			System.out.println("Caught Sneeze");
+		}catch (Annoyance a) {
+			System.out.println("Caught Annoyance");
+		}
+		
+		try {
+			throw new Sneeze();
+		}catch (Annoyance a) {
+			System.out.println("Caught Annoyance");
+		}
+	}
+}
+/**
+Caught Sneeze
+Caught Annoyance
+*/
+```
+
+Sneeze异常会被第一个匹配的catch子句捕获，也就是程序里的第一个。然而如果将这个catch子句删掉，只留下Annoyance的catch子句，该程序仍然能运行，因为这次捕获的是Sneeze的基类。换句话说，catch(Annoyance e)会捕获Annoyance以及所有从它派生的异常。这一点非常有用，因为如果决定在方法里加上更多派生异常的话，只要客户程序员捕获的是基类异常，那么它们的代码就无需更改。
+
+如果把捕获基类的catch子句放在最前面，以此把派生类的异常全给“屏蔽掉”，就像这样：
+
+```java
+try{
+    throw new Sneeze();
+}catch(Annoyance a){
+    //...
+}catch(Sneeze s){
+    //....
+}
+```
+
+这样编译器就会发现Sneeze的catch子句永远也得不到执行，因为它会向你报告错误。
+
+## 其他可选方式
+
+**异常处理的一个重要原则是：只有在你知道如何处理的情况下才捕获异常。**
+
+## 异常使用指南
+
+应该在下列情况下使用异常：
+
+- 在恰当的级别处理问题。（在知道该如何处理的情况下才能捕获异常）
+- 解决问题并且重新调用产生异常的方法。
+- 进行少许修补，然后绕过异常发生的地方继续执行。
+- 用别的数据进行计算，以代替方法预计会返回的值。
+- 把当前运行环境下能做的事情尽量做完，然后把相同的异常重新抛到更高层。
+- 把当前运行环境下能做的事情尽量做完，然后把不同的异常抛到更高层。
+- 终止程序
+- 进行简化。（如果你的异常模式使问题变得太复杂，那用起来会非常痛苦也很烦人）
+- 让类库和程序更安全。（这既是在为调试做短期投资，也是在为程序的健壮性做长期投资。）
