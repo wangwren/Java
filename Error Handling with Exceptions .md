@@ -1024,3 +1024,5 @@ try{
 - 终止程序
 - 进行简化。（如果你的异常模式使问题变得太复杂，那用起来会非常痛苦也很烦人）
 - 让类库和程序更安全。（这既是在为调试做短期投资，也是在为程序的健壮性做长期投资。）
+
+[练习题](https://github.com/wangwren/Thinking-in-Java-notes/tree/master/Chapter12Exercise/src/exceptions)
