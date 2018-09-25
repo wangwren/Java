@@ -75,7 +75,7 @@ javap -c Concatenation
 
 这里的 -c 标志表示将生成JVM字节码。
 
-![1537882674309](./_image/%5CUsers%5Cwwr%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5C1537882674309.png)
+![1537882674309](./_image/201809251.png)
 
 其中的dup与invokevirtural语句相当于Java虚拟机上的会变语句。需要注意的重点是：编译器自动引入了java.lang.StringBuilder类。虽然我们在源码中并没有使用StringBuilder类，但是编译器却自作主张地使用了它，因为它更高效。
 
@@ -107,13 +107,13 @@ public class WhiterStringBuilder {
 
 现在运行 javap -c WhiterStringBuilder，可以看到两个对应的字节码。首先是  implicit()方法：
 
-![1537888294548](./_image/%5CUsers%5Cwwr%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5C1537888294548.png)
+![1537888294548](./_image/201809252.png)
 
 注意从第8行到第35行构成了一个循环体。第8行：对堆栈中的操作数进行“大于或等于的整数比较运算”，循环结束时跳到38行。第35行：返回循环体的起始点（第5行）。要注意的重点是：StringBuilder是在循环之内构造的，这意味着每经过循环一次，就会创建一个新的StringBuilder对象。
 
 下面是explicit()方法对应的字节码：
 
-![1537888851894](./_image/%5CUsers%5Cwwr%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5C1537888851894.png)
+![1537888851894](./_image/201809253.png)
 
 可以看到，不仅循环部分的代码更简短、更简单，而且它只生成了一个StringBuilder对象。显示地创建StringBuilder还允许你预先为其指定大小。如果你已经知道最终的字符串大概有多长，那预先指定StringBuilder的大小可以避免多次重新分配缓冲。
 
