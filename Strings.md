@@ -241,3 +241,5 @@ public class ScannerDelimiter {
 
 这个例子使用逗号（包括逗号前后任意的空白字符）作为定界符，同样的技术也可以用来读取逗号分隔的文件。可以用`useDelimiter()`来设置定界符，同时，还有一个delimiter()方法，用来返回当前正在作为定界符使用的Pattern对象。
 
+[练习题](https://github.com/wangwren/Thinking-in-Java-notes/tree/master/Chapter13Exercise/src/strings)
+
