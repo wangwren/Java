@@ -11,4 +11,5 @@
 ## [内部类](https://github.com/wangwren/Java/blob/master/Inner%20Classes.md)
 ## [持有对象](https://github.com/wangwren/Thinking-in-Java-notes/blob/master/Holding%20Your%20Objects.md)
 ## [通过异常处理错误](https://github.com/wangwren/Thinking-in-Java-notes/blob/master/Error%20Handling%20with%20Exceptions%20.md)
+## [字符串](https://github.com/wangwren/Thinking-in-Java-notes/blob/master/Strings.md)
 ....
