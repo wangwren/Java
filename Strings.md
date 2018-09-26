@@ -155,3 +155,89 @@ StringBuilder是Java SE5引入的，在这之前Java**用的是StringBuffer**。
 
 ## 无意识递归
 
+Java中的每个类从根本上都是继承自 Object，标准容器类自然也不例外。因此容器类都有 toString() 方法，并且覆写了该方法，使得它生成的 String 结果能够表达容器自身，以及容器所包含的对象。例如ArrayList.toString()，它会遍历ArrayList中包含的所有对象，调用每个元素上的toString()方法。
+
+如果你希望 toString() 方法打印出对象的内存地址，也许你会考虑使用 this 关键字：
+
+```java
+package strings;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class InfiniteRecursion {
+
+	public String toString() {
+		return " InfiniteRecursion address: " + this + "\n";
+        //正确的写法：return " InfiniteRecursion address: " + super.toString() + "\n";
+	}
+	public static void main(String[] args) {
+		List<InfiniteRecursion> v = new ArrayList<InfiniteRecursion>();
+		for(int i = 0;i < 10;i++) {
+			v.add(new InfiniteRecursion());
+		}
+		System.out.println(v);
+	}
+}
+/**
+Exception in thread "main" java.lang.StackOverflowError
+	at java.lang.AbstractStringBuilder.append(AbstractStringBuilder.java:449)
+	at java.lang.StringBuilder.append(StringBuilder.java:136)
+	at java.lang.StringBuilder.<init>(StringBuilder.java:113)
+	at strings.InfiniteRecursion.toString(InfiniteRecursion.java:9)
+	at java.lang.String.valueOf(String.java:2994)
+	at java.lang.StringBuilder.append(StringBuilder.java:131)
+	at strings.InfiniteRecursion.toString(InfiniteRecursion.java:9)...
+*/
+```
+
+当创建了InfiniteRecursion对象，并将其打印出来的时候，会得到一串非常长的异常。其实，当如下代码运行时：
+
+```java
+"InfiniteRecursion address:" + this
+```
+
+这里发生了自动类型转换，由 InfiniteRecursion 类型转换成 String 类型。**因为编译器看到一个String对象后面跟着一个“+”，而后面的对象不是String，于是编译器试着将 this 转换成一个 String。正是通过调用 this 上的 toString() 方法，于是就发生了递归调用。**
+
+如果真的想要打印出对象的内存地址，应该调用`Object.toString()`方法，这才是负责此任务的方法。所以，不使用 this，而是应该调用super.toString()方法。
+
+## String上的操作
+
+查看JDK中String方法可以看出，当需要改变字符串内容时，String类的方法都会返回一个新的String对象。同时，如果内容没有发生改变，String的方法只是返回指向原对象的引用而已。这样可以节约存储空间以及避免额外的开销。
+
+## 扫描输入
+
+Java SE5 新增了 Scanner 类，它可以大大减轻扫描输入的工作负担。
+
+Scanner的构造器可以接受任何类型的输入对象，包括File对象、InputStream、String。有了Scanner，所有的输入、分词以及翻译的操作都隐藏在不同类型的next方法中。普通的next()方法返回下一个String。所有的基本类型（除char之外）都有对应的next方法，包括BigDecimal和BigInteger。所有的next方法，只有在找到一个完整的分词之后才会返回。Scanner还有相应的hasNext方法，用以判断下一个输入分词是否所需的类型。
+
+### Scanner定界符
+
+在默认情况下，Scanner根据空白字符对输入进行分词，但是可以用正则表达式指定自己所需的定界符：
+
+```java
+package strings;
+
+import java.util.Scanner;
+
+public class ScannerDelimiter {
+
+	public static void main(String[] args) {
+		Scanner sc = new Scanner("12,42,78,99,42");
+		sc.useDelimiter("\\s*,\\s*");
+		while(sc.hasNextInt()) {
+			System.out.println(sc.nextInt());
+		}
+	}
+}
+/**
+12
+42
+78
+99
+42
+*/
+```
+
+这个例子使用逗号（包括逗号前后任意的空白字符）作为定界符，同样的技术也可以用来读取逗号分隔的文件。可以用`useDelimiter()`来设置定界符，同时，还有一个delimiter()方法，用来返回当前正在作为定界符使用的Pattern对象。
+
