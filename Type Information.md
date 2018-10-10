@@ -144,3 +144,109 @@ After creating Cookie
 Class.forName("Gum");
 ```
 这个方法是Class类（所有Class对象都属于这个类）的一个static成员。Class对象就和其他对象一样，我们可以获取并操作它的引用（这也就是类加载器的工作）。forName()是取得Class对象的引用的一种方法，调用forName("X")将导致命名为 X 的类被初始化。它是用一个包含目标类的文本名（注意拼写和大小写）的String作输入参数，返回的是一个Class对象的引用，上面的代码忽略了返回值。对forName()的调用是为了它产生的“副作用”：如果类Gum还没有被加载就加载它。
+
+在前面的例子里，如果Class.forName()找不到你要加载的类，它会抛出异常ClassNotFoundException，这里我们只需简单报告问题，但在更严密的程序里，可能要在异常处理程序中解决这个问题。
+
+无论何时，只要想在运行时使用类型信息，就必须首先获得恰当的Class对象的引用。Class.forName()就是实现此功能的便捷途径，因为你不需要为了获得Class引用而持有**该类型**的对象。但是，如果已经拥有了一个感兴趣的类型的对象，那就可以通过调用getClass()方法来获取Class引用了，这个方法属于根类Object的一部分，它将返回表示该对象的实际类型的Class引用。Class包含很多有用的方法：
+
+```java
+package test_01;
+
+interface HasBatteries{}
+interface Waterproof{}
+interface Shoots{}
+
+class Toy{
+	Toy(){}
+	Toy(int i){}
+}
+
+class FancyToy extends Toy implements HasBatteries,Waterproof,Shoots{
+	FancyToy() {
+		super(1);
+	}
+}
+
+public class ToyTest {
+	static void printInfo(Class cc){
+		System.out.println("Class name: " + cc.getName() + 
+				" is interface? [" + cc.isInterface() + "]");
+		System.out.println("Simple name: " + cc.getSimpleName());
+		System.out.println("Canonical name : " + cc.getCanonicalName());
+	}
+	
+	public static void main(String[] args) {
+		Class c = null;
+		try {
+			c = Class.forName("test_01.FancyToy");
+		} catch (ClassNotFoundException e) {
+			System.out.println("Can't find FancyToy");
+			System.exit(1);
+		}
+		printInfo(c);
+		
+		for (Class face : c.getInterfaces()) {
+			printInfo(face);
+		}
+		Class up = c.getSuperclass();
+		Object obj = null;
+		try {
+			obj = up.newInstance();
+		} catch (InstantiationException e) {
+			System.out.println("Cannot instantiate");
+			System.exit(1);
+		} catch (IllegalAccessException e) {
+			System.out.println("Cannot access");
+			System.exit(1);
+		}
+		printInfo(obj.getClass());
+	}
+}
+/**
+Output:
+Class name: test_01.FancyToy is interface? [false]
+Simple name: FancyToy
+Canonical name : test_01.FancyToy
+Class name: test_01.HasBatteries is interface? [true]
+Simple name: HasBatteries
+Canonical name : test_01.HasBatteries
+Class name: test_01.Waterproof is interface? [true]
+Simple name: Waterproof
+Canonical name : test_01.Waterproof
+Class name: test_01.Shoots is interface? [true]
+Simple name: Shoots
+Canonical name : test_01.Shoots
+Class name: test_01.Toy is interface? [false]
+Simple name: Toy
+Canonical name : test_01.Toy
+*/
+```
+FancyToy继承自Toy并实现了HashBatteries、Waterproof和Shoots接口。在main()中，用forName()方法在适当的try语句块中，创建了一个Class引用，并将其初始化指向FancyToyClass。注意，在传递给forName()的字符串中，必须使用全限定名（包含包名）。
+
+printInfo()使用getName()来产生全限定的类名，并分别使用getSimpleName()和getCanonicalName()(在Java SE5中引入的)来产生不包含包名的类名和全限定的类名。isInterface()方法如同其名，可以告诉你这个Class对象是否表示某个接口。因此，通过Class对象，可以发现你想要了解的类型的所有信息。
+
+在main()方法中调用Class.getInterfaces()方法返回的是Class对象，它们表示在感兴趣的Class对象中所包含的接口。
+
+如果你有一个Class对象，还可以使用getSupperclass()方法查询其直接基类，这将返回你可以用来进一步查询的Class对象。因此，可以运行时发现一个对象完整的类继承结构。
+
+**Class的newInstance()方法是实现“虚拟构造器”的一种途径**，虚拟构造器允许你声明：“我不知道i的确切类型，但是无论如何要正确的创建你自己”。在前面的示例中，up仅仅只是一个Class引用，在编译期不具备任何更进一步的类型信息。当你创建新实例时，会得到Object引用，但是这个引用指向的是Toy对象。当然，在你可以发送Object能够接受的消息之外的任何消息之前，你必须更多地了解它，并执行某种转型。另外，**使用newInstance()来创建的类，必须带有默认的构造器**。
+### 类字面常量
+Java还提供了另一种方法来生成对Class对象的引用，即使用**类字面常量**。对上述程序来说，就像下面这样：
+```java
+FancyToy.class
+```
+这样做不仅更简单，而且更安全，因为它在编译时就会受到检查（因此不需要置于try语句块中）。并且它根除了对forName()方法的调用，所以它更高效。
+
+类字面常量不仅可以应用于普通的类，也可以应用于接口、数组以及基本数据类型。另外，对于基本数据类型的包装器类，还有一个标准字段TYPE。TYPE字段是一个引用，指向对应的基本数据类型的Class对象，如下所示。（其左部分与右部分等价）
+
+|    访问权限     | 类   |
+| :-------------: | ---- |
+|     boolean.class      | Boolean.TYPE    |
+|    char.class    | Character.TYPE    |
+| byte.class | Byte.TYPE    |
+|     short.class     | Short.TYPE    |
+|     int.class     | Integer.TYPE    |
+|     long.class     | Long.TYPE    |
+|     float.class     | Float.TYPE    |
+|     double.class     | Double.TYPE    |
+|     void.class     | Void.TYPE    |
