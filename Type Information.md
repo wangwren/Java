@@ -328,4 +328,115 @@ After creating Initable3 ref
 如果一个static域不是final的，那么在对它访问时，总是要求在它被读取之前，要先进行链接（为这个域分配存储空间）和初始化（初始化该存储空间），就像在对Initable2.staticNotFinal的访问中所看到的那样。
 
 ### 泛化的Class引用
+Class引用总是指向某个Class对象，它可以制造类的实例，并包含可做用于这些实例的所有方法代码。它还包含该类的静态成员，因此，Class引用表示的就是它所指向的对象的确切类型，而该对象便是Class类的一个对象。
+
+但是，Java SE5的设计者们看准机会，将它的类型变得更具体了一些，而这是通过允许你对Class引用所指向的Class对象的类型进行限定而实现的，这里用到了泛型语法。在下面实例中，两种语法都是正确的：
+
+```java
+package test_01;
+
+public class GenericClassReferences {
+
+	public static void main(String[] args) {
+		Class initClass = int.class;
+		Class<Integer> genericIntClass = int.class;
+		genericIntClass = Integer.class;	//Same thing
+		initClass = double.class;
+		//genericIntClass = double.class; 报错，编译不通过
+	}
+}
+```
+普通的类引用不会产生警告信息，可以看到，尽管泛型类引用只能赋值为指向其声明的类型，但是普通的类引用可以被重载赋值为指向任何其他的Class对象。通过使用泛型语法，可以让编译期强制执行额外的类型检查。
+
+如果希望稍微放松一些这种限制，乍一看，好像应该能够执行类似下面这样的操作：
+```java
+Class<Number> genericNumberClass = int.class;
+```
+这看起来似乎是起作用的，**因为Integer继承自Number，但是它无法工作**，因为Integer Class对象不是Number Class对象的子类。
+
+**为了在使用泛化的Class引用时放松限制，可以使用通配符**，它是Java泛型的一部分，通配符就是“?”，表示“任何事物”，因此，可以在上例的普通Class引用中添加通配符，并产出相同的结果：
+
+```java
+package test_01;
+
+public class WildcardClassReferences {
+
+	public static void main(String[] args) {
+		Class<?> intClass = int.class;
+		intClass = double.class;
+	}
+}
+```
+
+在Java SE5中，Class<?>优于平凡的Class，即便它们是等价的，并且平凡的Class如你所见，不会产生编译期警告信息。Class<?>的好处是它表示你并非是碰巧或者由于疏忽，而使用了一个非具体的类引用，你就是选择了非具体的版本。
+
+为了创建一个Class引用，它被限定为某种类型，或该类型的任何子类型，需要将通配符与extends关键字结合，创建一个范围。因此，与仅仅声明Class<Number>不同，现在做如下声明：
+```java
+package test_01;
+
+public class BoundedClassReferences {
+
+	public static void main(String[] args) {
+		Class<? extends Number> bounded = int.class;
+		bounded = double.class;
+		bounded = Number.class;
+		//任何从Number继承的类
+	}
+}
+```
+
+向Class引用添加泛型语法的原因仅仅是为了提供编译期类型检查，因此如果你操作有误，稍后立即就会发现这一点。在使用普通Class引用，如果犯了错误，指导运行时才会发现它，这显得非常不方便。
+
+下面的示例使用了泛型类语法。它存储了一个类引用，稍候又产生了一个List，填充这个List的对象是使用newInstance()方法，通过该引用生成的：
+```java
+package test_01;
+
+import java.util.ArrayList;
+import java.util.List;
+
+class CountedInteger{
+	private static long count;
+	private final long id = count++;
+	public String toString(){
+		return Long.toString(id);
+	}
+}
+
+public class FilledList<T> {
+
+	private Class<T> type;
+	public FilledList(Class<T> type){
+		this.type = type;
+	}
+	
+	public List<T> create(int nElements) {
+		List<T> result = new ArrayList<T>();
+		for (int i = 0; i < nElements; i++) {
+			try {
+				result.add(type.newInstance());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return result;
+	}
+	
+	public static void main(String[] args) {
+		FilledList<CountedInteger> fl = 
+				new FilledList<CountedInteger>(CountedInteger.class);
+		System.out.println(fl.create(15));
+	}
+}
+/**
+Output:
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+*/
+```
+注意，**这个类必须假设与它一同工作的任何类型都具有一个默认的构造器（无参构造器）**，并且如果不符合该条件，你将得到一个异常。编译期对该程序不会产生任何警告信息。
+
+当将泛型语法用于Class对象时，会发生一件很有趣的事情：newIn
+
+
+
+
 
